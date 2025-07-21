@@ -1,0 +1,24 @@
+# KiloGram/.gitignore
+
+# Python
+__pycache__/
+*.pyc
+
+# Django
+*.log
+db.sqlite3
+
+# Virtualenv
+venv/
+env/
+
+# Editor specifics
+.idea/
+.vscode/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
