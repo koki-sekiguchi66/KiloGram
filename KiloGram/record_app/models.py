@@ -76,6 +76,10 @@ class StandardFood(models.Model):
     
     def __str__(self):
         return self.name
+    
+    class Meta:
+        verbose_name = "標準食品"
+        verbose_name_plural = "標準食品"
 
 class CustomFood(models.Model):
     """ユーザーが追加した食品情報"""
@@ -96,8 +100,10 @@ class CustomFood(models.Model):
     vitamin_c_per_100g = models.FloatField(default=0, verbose_name="ビタミンC(mg)")
 
     def __str__(self):
-        return self.name
+        return f"{self.user.username} - {self.name}"
 
     class Meta:
+        verbose_name = "カスタム食品"
+        verbose_name_plural = "カスタム食品"
         unique_together = ['user', 'name']
 

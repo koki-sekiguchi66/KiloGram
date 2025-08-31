@@ -1,10 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, viewsets, generics, permissions
+from rest_framework.decorators import api_view
 from django.utils import timezone
 from datetime import date
 from .models import MealRecord, WeightRecord
 from .serializers import MealRecordSerializer, UserRegistrationSerializer, WeightRecordSerializer
+from .business_logic.nutrition_calculator import NutritionCalculatorService
 
 
 class MealRecordViewSet(viewsets.ModelViewSet):
@@ -55,3 +57,91 @@ class MealTimingChoicesView(APIView):
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
+
+@api_view(['GET'])
+def search_foods(request):
+    """食品検索API"""
+    query = request.GET.get('q', '')
+    if not query:
+        return Response({'error': '検索キーワードが必要です'}, status=400)
+    
+    if len(query) < 2:
+        return Response({'foods': []})
+    
+    calculator = NutritionCalculatorService()
+    results = calculator.search_foods(query, request.user)
+    
+    return Response({'foods': results})
+
+@api_view(['GET'])
+def food_suggestions(request):
+    """食品名候補API（オートコンプリート用）"""
+    query = request.GET.get('q', '')
+    if not query or len(query) < 2:
+        return Response({'suggestions': []})
+    
+    calculator = NutritionCalculatorService()
+    suggestions = calculator.get_food_suggestions(query)
+    
+    return Response({'suggestions': suggestions})
+
+@api_view(['POST'])
+def calculate_nutrition(request):
+    """栄養素計算API"""
+    food_id = request.data.get('food_id')
+    amount = request.data.get('amount', 100)
+    
+    if not food_id:
+        return Response({'error': 'food_idが必要です'}, status=400)
+    
+    try:
+        calculator = NutritionCalculatorService()
+        nutrition = calculator.calculate_nutrition_for_amount(food_id, float(amount))
+        
+        return Response({
+            'nutrition': nutrition,
+            'amount': amount
+        })
+    except ValueError as e:
+        return Response({'error': str(e)}, status=400)
+
+@api_view(['GET'])
+def daily_nutrition_summary(request):
+    """日別栄養素サマリーAPI"""
+    target_date_str = request.GET.get('date')
+    
+    if target_date_str:
+        try:
+            target_date = date.fromisoformat(target_date_str)
+        except ValueError:
+            return Response({'error': '日付形式が正しくありません（YYYY-MM-DD）'}, status=400)
+    else:
+        target_date = date.today()
+    
+    calculator = NutritionCalculatorService()
+    summary = calculator.get_daily_nutrition_summary(request.user, target_date)
+    
+    return Response({
+        'date': target_date,
+        'nutrition_summary': summary
+    })
+
+
+@api_view(['POST'])
+def create_custom_food(request):
+    """カスタム食品作成API"""
+    try:
+        calculator = NutritionCalculatorService()
+        custom_food = calculator.create_custom_food(request.user, request.data)
+        
+        return Response({
+            'message': 'カスタム食品を作成しました',
+            'food': {
+                'id': f'custom_{custom_food.id}',
+                'name': custom_food.name,
+                'type': 'custom'
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
