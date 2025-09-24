@@ -101,31 +101,76 @@ const Dashboard = ({ handleLogout }) => {
   };
 
   return (
-    <div>
-      <h2>ダッシュボード</h2>
-      <button onClick={handleLogout}>ログアウト</button>
-      <hr />
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+      {/* ヘッダー */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '30px',
+        padding: '20px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px'
+      }}>
+        <h1 style={{ margin: 0, color: '#333' }}>KiloGram - ホーム</h1>
+        <button 
+          onClick={handleLogout}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#dc3545',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
+        >
+          ログアウト
+        </button>
+      </div>
       
-      <div style={{ display: 'flex', gap: '50px' }}>
-        <div style={{ flex: 1 }}>
+      {/* 記録フォーム */}
+      <div style={{ display: 'flex', gap: '30px', marginBottom: '40px' }}>
+        <div style={{ 
+          flex: 1, 
+          padding: '20px', 
+          backgroundColor: '#ffffff',
+          borderRadius: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
           <MealForm onMealCreated={handleMealCreated} />
         </div>
-        <div style={{ flex: 1 }}>
+        <div style={{ 
+          flex: 1, 
+          padding: '20px', 
+          backgroundColor: '#ffffff',
+          borderRadius: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
           <WeightForm onWeightCreated={handleWeightCreated} />
         </div>
       </div>
 
-      <hr />
-
       {/* 日別栄養サマリー */}
-      <div style={{ marginBottom: '30px' }}>
-        <h3>日別栄養サマリー</h3>
-        <div style={{ marginBottom: '15px' }}>
-          <label>日付選択: </label>
+      <div style={{ 
+        marginBottom: '40px',
+        padding: '20px',
+        backgroundColor: '#ffffff',
+        borderRadius: '8px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        <h3 style={{ color: '#333', marginBottom: '20px' }}>日別栄養サマリー</h3>
+        <div style={{ marginBottom: '20px' }}>
+          <label style={{ marginRight: '10px', fontWeight: 'bold' }}>日付選択: </label>
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
+            style={{
+              padding: '8px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '16px'
+            }}
           />
         </div>
         
@@ -136,7 +181,9 @@ const Dashboard = ({ handleLogout }) => {
             borderRadius: '8px',
             border: '1px solid #dee2e6'
           }}>
-            <h4>{selectedDate} の栄養摂取量</h4>
+            <h4 style={{ margin: '0 0 15px 0', color: '#495057' }}>
+              {selectedDate} の栄養摂取量
+            </h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
               <div><strong>カロリー:</strong> {dailySummary.calories} kcal</div>
               <div><strong>タンパク質:</strong> {dailySummary.protein} g</div>
@@ -154,53 +201,103 @@ const Dashboard = ({ handleLogout }) => {
           </div>
         )}
       </div>
-
-      <hr />
       
-      <div style={{ display: 'flex', gap: '50px' }}>
-        <div style={{ flex: 1 }}>
-          <h3>あなたの食事記録</h3>
+      {/* 記録一覧 */}
+      <div style={{ display: 'flex', gap: '30px' }}>
+        <div style={{ 
+          flex: 1,
+          padding: '20px',
+          backgroundColor: '#ffffff',
+          borderRadius: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <h3 style={{ color: '#333', marginBottom: '20px' }}>食事記録</h3>
           {message && <p style={{ color: 'red' }}>{message}</p>}
           {meals.length > 0 ? (
-            <ul>
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
               {meals.map((meal) => (
-                <li key={meal.id} style={{ marginBottom: '10px', padding: '10px', border: '1px solid #eee' }}>
-                  <div>
-                    <strong>{meal.record_date}: {meal.meal_timing} - {meal.meal_name}</strong>
+                <div key={meal.id} style={{ 
+                  marginBottom: '15px', 
+                  padding: '15px', 
+                  border: '1px solid #eee',
+                  borderRadius: '5px',
+                  backgroundColor: '#fafafa'
+                }}>
+                  <div style={{ marginBottom: '8px' }}>
+                    <strong style={{ color: '#333' }}>
+                      {meal.record_date}: {meal.meal_timing} - {meal.meal_name}
+                    </strong>
                   </div>
-                  <div style={{ fontSize: '0.9em', color: '#666', marginTop: '5px' }}>
+                  <div style={{ fontSize: '0.9em', color: '#666', marginBottom: '10px' }}>
                     {meal.calories}kcal | タンパク質{meal.protein}g | 脂質{meal.fat}g | 炭水化物{meal.carbohydrates}g
                     {meal.iron > 0 && ` | 鉄分${meal.iron}mg`}
                     {meal.vitamin_c > 0 && ` | ビタミンC${meal.vitamin_c}mg`}
                   </div>
-                  <div style={{ marginTop: '5px' }}>
-                    <button onClick={() => setEditingMeal(meal)} style={{ marginRight: '10px' }}>
+                  <div>
+                    <button 
+                      onClick={() => setEditingMeal(meal)} 
+                      style={{ 
+                        marginRight: '10px',
+                        padding: '5px 10px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        cursor: 'pointer'
+                      }}
+                    >
                       編集
                     </button>
-                    <button onClick={() => handleMealDelete(meal.id)}>
+                    <button 
+                      onClick={() => handleMealDelete(meal.id)}
+                      style={{
+                        padding: '5px 10px',
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        cursor: 'pointer'
+                      }}
+                    >
                       削除
                     </button>
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
           ) : (
-            <p>まだ食事記録はありません。</p>
+            <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>
+              まだ食事記録はありません。
+            </p>
           )}
         </div>
         
-        <div style={{ flex: 1 }}>
-          <h3>あなたの体重記録</h3>
+        <div style={{ 
+          flex: 1,
+          padding: '20px',
+          backgroundColor: '#ffffff',
+          borderRadius: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <h3 style={{ color: '#333', marginBottom: '20px' }}>体重記録</h3>
           {weights.length > 0 ? (
-            <ul>
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
               {weights.map((weight) => (
-                <li key={weight.id}>
-                  {weight.record_date}: {weight.weight} kg
-                </li>
+                <div key={weight.id} style={{ 
+                  marginBottom: '10px', 
+                  padding: '10px', 
+                  border: '1px solid #eee',
+                  borderRadius: '5px',
+                  backgroundColor: '#fafafa'
+                }}>
+                  <strong>{weight.record_date}:</strong> {weight.weight} kg
+                </div>
               ))}
-            </ul>
+            </div>
           ) : (
-            <p>まだ体重記録はありません。</p>
+            <p style={{ color: '#666', textAlign: 'center', padding: '20px' }}>
+              まだ体重記録はありません。
+            </p>
           )}
         </div>
       </div>
