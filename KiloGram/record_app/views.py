@@ -4,8 +4,8 @@ from rest_framework import status, viewsets, generics, permissions
 from rest_framework.decorators import api_view
 from django.utils import timezone
 from datetime import date
-from .models import MealRecord, WeightRecord
-from .serializers import MealRecordSerializer, UserRegistrationSerializer, WeightRecordSerializer
+from .models import MealRecord, WeightRecord, CustomFood
+from .serializers import MealRecordSerializer, UserRegistrationSerializer, WeightRecordSerializer, CustomFoodSerializer
 from .business_logic.nutrition_calculator import NutritionCalculatorService
 
 
@@ -44,9 +44,17 @@ class WeightRecordViewSet(viewsets.ModelViewSet):
         return Response(response_serializer.data, status=status_code)
 
 
+class CustomFoodViewSet(viewsets.ModelViewSet):
+    serializer_class = CustomFoodSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return CustomFood.objects.filter(user=self.request.user).order_by('name')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
-        
 class MealTimingChoicesView(APIView):
     def get(self, request, *args, **kwargs):
         choices = MealRecord.MEAL_TIMING_CHOICES
@@ -57,6 +65,7 @@ class MealTimingChoicesView(APIView):
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
+
 
 @api_view(['GET'])
 def search_foods(request):
@@ -73,6 +82,7 @@ def search_foods(request):
     
     return Response({'foods': results})
 
+
 @api_view(['GET'])
 def food_suggestions(request):
     """食品名候補API（オートコンプリート用）"""
@@ -84,6 +94,7 @@ def food_suggestions(request):
     suggestions = calculator.get_food_suggestions(query)
     
     return Response({'suggestions': suggestions})
+
 
 @api_view(['POST'])
 def calculate_nutrition(request):
@@ -104,6 +115,7 @@ def calculate_nutrition(request):
         })
     except ValueError as e:
         return Response({'error': str(e)}, status=400)
+
 
 @api_view(['GET'])
 def daily_nutrition_summary(request):
@@ -143,5 +155,45 @@ def create_custom_food(request):
             }
         }, status=status.HTTP_201_CREATED)
         
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
+
+@api_view(['GET'])
+def list_custom_foods(request):
+    """ユーザーのカスタム食品一覧取得API"""
+    try:
+        custom_foods = CustomFood.objects.filter(user=request.user).order_by('name')
+        serializer = CustomFoodSerializer(custom_foods, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
+
+@api_view(['PUT'])
+def update_custom_food(request, food_id):
+    """カスタム食品更新API"""
+    try:
+        custom_food = CustomFood.objects.get(id=food_id, user=request.user)
+        serializer = CustomFoodSerializer(custom_food, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+    except CustomFood.DoesNotExist:
+        return Response({'error': 'カスタム食品が見つかりません'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
+
+@api_view(['DELETE'])
+def delete_custom_food(request, food_id):
+    """カスタム食品削除API"""
+    try:
+        custom_food = CustomFood.objects.get(id=food_id, user=request.user)
+        custom_food.delete()
+        return Response({'message': 'カスタム食品を削除しました'}, status=204)
+    except CustomFood.DoesNotExist:
+        return Response({'error': 'カスタム食品が見つかりません'}, status=404)
     except Exception as e:
         return Response({'error': str(e)}, status=400)

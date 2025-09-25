@@ -6,17 +6,22 @@ from .views import (
     MealTimingChoicesView, 
     MealRecordViewSet,
     WeightRecordViewSet, 
+    CustomFoodViewSet,
     UserRegistrationView,
     search_foods,
     food_suggestions,
     calculate_nutrition,
     daily_nutrition_summary,
-    create_custom_food
+    create_custom_food,
+    list_custom_foods,
+    update_custom_food,
+    delete_custom_food
 )
 
 router = DefaultRouter()
 router.register(r'meals', MealRecordViewSet, basename='meal')
 router.register(r'weights', WeightRecordViewSet, basename='weight')
+router.register(r'custom-foods', CustomFoodViewSet, basename='customfood')
 
 urlpatterns = [
     # 基本URL
@@ -30,6 +35,9 @@ urlpatterns = [
     path('foods/suggestions/', food_suggestions, name='food-suggestions'),
     path('foods/calculate/', calculate_nutrition, name='calculate-nutrition'),
     path('foods/custom/', create_custom_food, name='create-custom-food'),
+    path('foods/custom/list/', list_custom_foods, name='list-custom-foods'),
+    path('foods/custom/<int:food_id>/', update_custom_food, name='update-custom-food'),
+    path('foods/custom/<int:food_id>/delete/', delete_custom_food, name='delete-custom-food'),
     
     # 栄養サマリー
     path('nutrition/daily-summary/', daily_nutrition_summary, name='daily-nutrition-summary'),

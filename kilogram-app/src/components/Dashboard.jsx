@@ -19,6 +19,7 @@ import EditMealModal from './EditMealModal';
 
 const Dashboard = ({ handleLogout }) => {
   const [meals, setMeals] = useState([]);
+  const [allMeals, setAllMeals] = useState([]); // 全ての食事記録を保持
   const [weights, setWeights] = useState([]);
   const [message, setMessage] = useState('');
   const [editingMeal, setEditingMeal] = useState(null);
@@ -29,7 +30,9 @@ const Dashboard = ({ handleLogout }) => {
     const fetchMeals = async () => {
       try {
         const response = await apiClient.get('/meals/');
-        setMeals(response.data);
+        setAllMeals(response.data);
+        // 初回読み込み時に今日の日付でフィルタ
+        filterMealsByDate(response.data, selectedDate);
       } catch (error) {
         console.error('Failed to fetch meals', error);
         setMessage('食事記録の取得に失敗しました。');
@@ -60,12 +63,25 @@ const Dashboard = ({ handleLogout }) => {
     fetchDailySummary();
   }, [selectedDate]);
 
+  // 選択した日付で食事記録をフィルタリングする関数
+  const filterMealsByDate = (mealList, date) => {
+    const filteredMeals = mealList.filter(meal => meal.record_date === date);
+    setMeals(filteredMeals.sort((a, b) => new Date(b.record_date) - new Date(a.record_date)));
+  };
+
+  // 日付変更時の処理
+  const handleDateChange = (newDate) => {
+    setSelectedDate(newDate);
+    filterMealsByDate(allMeals, newDate);
+  };
+
   const handleMealCreated = (newMeal) => {
-    setMeals(prevMeals => 
-      [newMeal, ...prevMeals].sort((a, b) => new Date(b.record_date) - new Date(a.record_date))
-    );
+    const updatedAllMeals = [newMeal, ...allMeals].sort((a, b) => new Date(b.record_date) - new Date(a.record_date));
+    setAllMeals(updatedAllMeals);
     
+    // 新しい食事記録が選択された日付と同じ場合のみ、表示リストを更新
     if (newMeal.record_date === selectedDate) {
+      filterMealsByDate(updatedAllMeals, selectedDate);
       fetchDailySummary();
     }
   };
@@ -83,7 +99,9 @@ const Dashboard = ({ handleLogout }) => {
     if (window.confirm('この記録を本当に削除しますか？')) {
       try {
         await apiClient.delete(`/meals/${mealId}/`);
-        setMeals(meals.filter(meal => meal.id !== mealId));
+        const updatedAllMeals = allMeals.filter(meal => meal.id !== mealId);
+        setAllMeals(updatedAllMeals);
+        filterMealsByDate(updatedAllMeals, selectedDate);
         fetchDailySummary();
       } catch (error) {
         console.error('Failed to delete meal', error);
@@ -93,7 +111,9 @@ const Dashboard = ({ handleLogout }) => {
   };
 
   const handleMealUpdated = (updatedMeal) => {
-    setMeals(meals.map(meal => (meal.id === updatedMeal.id ? updatedMeal : meal)));
+    const updatedAllMeals = allMeals.map(meal => (meal.id === updatedMeal.id ? updatedMeal : meal));
+    setAllMeals(updatedAllMeals);
+    filterMealsByDate(updatedAllMeals, selectedDate);
     setEditingMeal(null);
     fetchDailySummary();
   };
@@ -149,6 +169,9 @@ const Dashboard = ({ handleLogout }) => {
     };
     return variants[timing] || 'primary';
   };
+
+  // 今日の日付かどうかを判定
+  const isToday = selectedDate === new Date().toISOString().split('T')[0];
 
   return (
     <>
@@ -214,13 +237,24 @@ const Dashboard = ({ handleLogout }) => {
             <Row className="mb-3">
               <Col md={6}>
                 <Form.Label className="fw-bold">日付選択:</Form.Label>
-                <Form.Control
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  style={{ width: 'auto', display: 'inline-block' }}
-                  className="ms-2"
-                />
+                <div className="d-flex align-items-center gap-2">
+                  <Form.Control
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => handleDateChange(e.target.value)}
+                    style={{ width: 'auto' }}
+                  />
+                  {!isToday && (
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      onClick={() => handleDateChange(new Date().toISOString().split('T')[0])}
+                    >
+                      <i className="bi bi-calendar-today me-1"></i>
+                      今日
+                    </Button>
+                  )}
+                </div>
               </Col>
             </Row>
             
@@ -229,6 +263,7 @@ const Dashboard = ({ handleLogout }) => {
                 <h6 className="text-primary mb-3">
                   <i className="bi bi-calendar3 me-2"></i>
                   {formatDate(selectedDate)} の栄養摂取量
+                  {isToday && <Badge bg="success" className="ms-2">今日</Badge>}
                 </h6>
                 <div className="nutrition-grid">
                   <div className="d-flex justify-content-between">
@@ -276,7 +311,8 @@ const Dashboard = ({ handleLogout }) => {
               <Card.Header className="bg-primary text-white d-flex justify-content-between align-items-center">
                 <Card.Title className="mb-0">
                   <i className="bi bi-list-ul me-2"></i>
-                  食事記録一覧
+                  {formatDate(selectedDate)} の食事記録
+                  {isToday && <Badge bg="light" text="primary" className="ms-2">今日</Badge>}
                 </Card.Title>
                 <Badge bg="light" text="primary">{meals.length}件</Badge>
               </Card.Header>
@@ -300,14 +336,14 @@ const Dashboard = ({ handleLogout }) => {
                                 {meal.meal_name}
                               </Card.Title>
                               <Card.Subtitle className="text-muted small">
-                                <i className="bi bi-calendar3 me-1"></i>
-                                {formatDate(meal.record_date)} - 
                                 <Badge 
                                   bg={getMealTimingVariant(meal.meal_timing)} 
-                                  className="ms-2"
+                                  className="me-2"
                                 >
                                   {getMealTimingLabel(meal.meal_timing)}
                                 </Badge>
+                                <i className="bi bi-calendar3 me-1"></i>
+                                {formatDate(meal.record_date)}
                               </Card.Subtitle>
                             </div>
                             <Dropdown>
@@ -359,8 +395,19 @@ const Dashboard = ({ handleLogout }) => {
                 ) : (
                   <div className="text-center py-4">
                     <i className="bi bi-journal-x text-muted display-4"></i>
-                    <p className="text-muted mt-2">まだ食事記録はありません。</p>
+                    <p className="text-muted mt-2">
+                      {isToday ? '今日の食事記録はまだありません。' : `${formatDate(selectedDate)}の食事記録はありません。`}
+                    </p>
                     <p className="text-muted">上のフォームから記録を追加しましょう！</p>
+                    {!isToday && (
+                      <Button
+                        variant="outline-primary"
+                        onClick={() => handleDateChange(new Date().toISOString().split('T')[0])}
+                      >
+                        <i className="bi bi-calendar-today me-2"></i>
+                        今日の記録を見る
+                      </Button>
+                    )}
                   </div>
                 )}
               </Card.Body>
