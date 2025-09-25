@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Form, Button, Alert, Spinner } from 'react-bootstrap';
 import axios from 'axios';
 
 const Login = ({ onLoginSuccess }) => {
@@ -26,10 +27,8 @@ const Login = ({ onLoginSuccess }) => {
       const response = await axios.post(API_URL, formData);
 
       if (response.data.token) {
-        // 受け取ったトークンをlocalStorageに保存する
         localStorage.setItem('token', response.data.token);
         setMessage('ログインに成功しました！');
-        // 親コンポーネントに成功を通知
         onLoginSuccess(response.data.token);
       }
     } catch (error) {
@@ -41,76 +40,80 @@ const Login = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div>
-      <h2 style={{ color: '#333', marginBottom: '20px' }}>ログイン</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', textAlign: 'left', color: '#555' }}>
-            ユーザー名:
-          </label>
-          <input
+    <>
+      <h3 className="text-center mb-4">
+        <i className="bi bi-box-arrow-in-right text-primary me-2"></i>
+        ログイン
+      </h3>
+      
+      <Form onSubmit={handleSubmit}>
+        <Form.Group className="mb-3">
+          <Form.Label>
+            <i className="bi bi-person me-1"></i>
+            ユーザー名
+          </Form.Label>
+          <Form.Control
             type="text"
             name="username"
             value={formData.username}
             onChange={handleChange}
             required
-            style={{
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px',
-              boxSizing: 'border-box'
-            }}
+            placeholder="ユーザー名を入力"
           />
-        </div>
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', textAlign: 'left', color: '#555' }}>
-            パスワード:
-          </label>
-          <input
+        </Form.Group>
+
+        <Form.Group className="mb-4">
+          <Form.Label>
+            <i className="bi bi-lock me-1"></i>
+            パスワード
+          </Form.Label>
+          <Form.Control
             type="password"
             name="password"
             value={formData.password}
             onChange={handleChange}
             required
-            style={{
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px',
-              boxSizing: 'border-box'
-            }}
+            placeholder="パスワードを入力"
           />
+        </Form.Group>
+
+        <div className="d-grid">
+          <Button 
+            type="submit" 
+            variant="primary"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  className="me-2"
+                />
+                ログイン中...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-circle me-2"></i>
+                ログイン
+              </>
+            )}
+          </Button>
         </div>
-        <button 
-          type="submit" 
-          disabled={isLoading}
-          style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: isLoading ? '#ccc' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '16px',
-            cursor: isLoading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isLoading ? 'ログイン中...' : 'ログイン'}
-        </button>
-      </form>
+      </Form>
+
       {message && (
-        <p style={{ 
-          marginTop: '15px',
-          color: message.includes('成功') ? '#28a745' : '#dc3545',
-          fontSize: '14px'
-        }}>
+        <Alert 
+          variant={message.includes('成功') ? 'success' : 'danger'} 
+          className="mt-3"
+        >
+          <i className={`bi ${message.includes('成功') ? 'bi-check-circle' : 'bi-exclamation-triangle'} me-2`}></i>
           {message}
-        </p>
+        </Alert>
       )}
-    </div>
+    </>
   );
 };
 

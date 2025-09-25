@@ -1,11 +1,21 @@
-// src/components/MealForm.jsx
 import { useState, useEffect } from 'react';
+import { 
+  Form, 
+  Button, 
+  Card, 
+  Alert, 
+  Spinner, 
+  Row, 
+  Col,
+  ButtonGroup,
+  Collapse
+} from 'react-bootstrap';
 import FoodSearchInput from './FoodSearchInput';
 import apiClient from '../api/axiosConfig';
 
 const MealForm = ({ onMealCreated }) => {
   const [mealData, setMealData] = useState({
-    record_date: new Date().toISOString().split('T')[0], // 今日の日付を初期値に
+    record_date: new Date().toISOString().split('T')[0],
     meal_timing: 'breakfast',
     meal_name: '',
     calories: 0,
@@ -26,6 +36,7 @@ const MealForm = ({ onMealCreated }) => {
   const [message, setMessage] = useState('');
   const [isManualInput, setIsManualInput] = useState(false);
   const [showAdvancedNutrition, setShowAdvancedNutrition] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchMealTimings = async () => {
@@ -39,7 +50,6 @@ const MealForm = ({ onMealCreated }) => {
     fetchMealTimings();
   }, []);
 
-  // 食品検索から栄養情報を自動設定
   const handleFoodSelected = (foodData) => {
     setMealData({
       ...mealData,
@@ -60,18 +70,18 @@ const MealForm = ({ onMealCreated }) => {
     setIsManualInput(false);
   };
 
-  // 手動入力時の変更処理
   const handleChange = (e) => {
     setMealData({ ...mealData, [e.target.name]: e.target.value });
   };
 
-  // フォーム送信
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
+    setIsLoading(true);
 
     if (!mealData.meal_name.trim()) {
       setMessage('食事名を入力してください。');
+      setIsLoading(false);
       return;
     }
 
@@ -80,7 +90,6 @@ const MealForm = ({ onMealCreated }) => {
       setMessage('食事を記録しました！');
       onMealCreated(response.data);
       
-      // フォームリセット（日付と食事タイミングは保持）
       const currentDate = mealData.record_date;
       const currentTiming = mealData.meal_timing;
       
@@ -103,455 +112,312 @@ const MealForm = ({ onMealCreated }) => {
       });
       setIsManualInput(false);
       
-      // 成功メッセージを3秒後に消す
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('食事記録エラー:', error);
       setMessage('記録に失敗しました。');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div>
-      <h3 style={{ color: '#333', marginBottom: '20px' }}>新しい食事を記録</h3>
-      
-      <form onSubmit={handleSubmit}>
-        {/* 日付選択 */}
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>
-            記録日:
-          </label>
-          <input
-            type="date"
-            name="record_date"
-            value={mealData.record_date}
-            onChange={handleChange}
-            style={{
-              padding: '8px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px'
-            }}
-          />
-        </div>
+    <Form onSubmit={handleSubmit}>
+      {/* 日付選択 */}
+      <Form.Group className="mb-3">
+        <Form.Label className="fw-bold">
+          <i className="bi bi-calendar3 me-2"></i>
+          記録日
+        </Form.Label>
+        <Form.Control
+          type="date"
+          name="record_date"
+          value={mealData.record_date}
+          onChange={handleChange}
+        />
+      </Form.Group>
 
-        {/* 食事タイミング選択 */}
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>
-            食事タイミング:
-          </label>
-          <select 
-            name="meal_timing"
-            value={mealData.meal_timing} 
-            onChange={handleChange}
-            style={{
-              padding: '8px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px',
-              width: '200px'
-            }}
-          >
-            {mealTimings.map((timing) => (
-              <option key={timing.value} value={timing.value}>
-                {timing.label}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* 食事タイミング選択 */}
+      <Form.Group className="mb-3">
+        <Form.Label className="fw-bold">
+          <i className="bi bi-clock me-2"></i>
+          食事タイミング
+        </Form.Label>
+        <Form.Select 
+          name="meal_timing"
+          value={mealData.meal_timing} 
+          onChange={handleChange}
+        >
+          {mealTimings.map((timing) => (
+            <option key={timing.value} value={timing.value}>
+              {timing.label}
+            </option>
+          ))}
+        </Form.Select>
+      </Form.Group>
 
-        {/* 入力方法選択 */}
-        <div style={{ 
-          marginBottom: '20px',
-          padding: '15px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '5px',
-          border: '1px solid #dee2e6'
-        }}>
-          <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold', color: '#555' }}>
-            入力方法:
-          </label>
-          <div style={{ display: 'flex', gap: '20px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-              <input
-                type="radio"
-                checked={!isManualInput}
-                onChange={() => setIsManualInput(false)}
-                style={{ marginRight: '8px' }}
-              />
-              食品検索から選択
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-              <input
-                type="radio"
-                checked={isManualInput}
-                onChange={() => setIsManualInput(true)}
-                style={{ marginRight: '8px' }}
-              />
-              手動入力
-            </label>
-          </div>
-        </div>
-
-        {/* 食品検索または手動入力 */}
-        {!isManualInput ? (
-          <div style={{ marginBottom: '20px' }}>
-            <FoodSearchInput onFoodSelected={handleFoodSelected} />
-          </div>
-        ) : (
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>
-              食事名:
-            </label>
-            <input
-              type="text"
-              name="meal_name"
-              value={mealData.meal_name}
-              onChange={handleChange}
-              required
-              placeholder="例: 白米、鶏胸肉のサラダ"
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                fontSize: '16px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-        )}
-
-        {/* 栄養情報表示・編集エリア */}
-        <div style={{ 
-          marginTop: '20px', 
-          padding: '20px', 
-          backgroundColor: '#f8f9fa', 
-          borderRadius: '8px',
-          border: '1px solid #dee2e6'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-            <h4 style={{ margin: 0, color: '#495057' }}>
-              栄養情報 {!isManualInput && mealData.meal_name ? '(自動計算)' : '(手動入力)'}
-            </h4>
-            <button
-              type="button"
-              onClick={() => setShowAdvancedNutrition(!showAdvancedNutrition)}
-              style={{
-                padding: '5px 10px',
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
+      {/* 入力方法選択 */}
+      <Card className="bg-light mb-3">
+        <Card.Body className="py-3">
+          <Form.Label className="fw-bold mb-3">
+            <i className="bi bi-gear me-2"></i>
+            入力方法
+          </Form.Label>
+          <ButtonGroup className="w-100">
+            <Button
+              variant={!isManualInput ? "primary" : "outline-primary"}
+              onClick={() => setIsManualInput(false)}
             >
-              {showAdvancedNutrition ? '詳細を隠す' : '詳細を表示'}
-            </button>
-          </div>
-          
-          {/* 基本栄養素（常に表示） */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px', marginBottom: '15px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                カロリー (kcal):
-              </label>
-              <input
+              <i className="bi bi-search me-2"></i>
+              食品検索
+            </Button>
+            <Button
+              variant={isManualInput ? "primary" : "outline-primary"}
+              onClick={() => setIsManualInput(true)}
+            >
+              <i className="bi bi-pencil me-2"></i>
+              手動入力
+            </Button>
+          </ButtonGroup>
+        </Card.Body>
+      </Card>
+
+      {/* 食品検索または手動入力 */}
+      {!isManualInput ? (
+        <div className="mb-3">
+          <FoodSearchInput onFoodSelected={handleFoodSelected} />
+        </div>
+      ) : (
+        <Form.Group className="mb-3">
+          <Form.Label className="fw-bold">
+            <i className="bi bi-journal-text me-2"></i>
+            食事名
+          </Form.Label>
+          <Form.Control
+            type="text"
+            name="meal_name"
+            value={mealData.meal_name}
+            onChange={handleChange}
+            required
+            placeholder="例: 白米、鶏胸肉のサラダ"
+          />
+        </Form.Group>
+      )}
+
+      {/* 栄養情報 */}
+      <Card className="mb-3">
+        <Card.Header className="d-flex justify-content-between align-items-center">
+          <Card.Title className="mb-0 h6">
+            <i className="bi bi-graph-up me-2"></i>
+            栄養情報 {!isManualInput && mealData.meal_name ? '(自動計算)' : '(手動入力)'}
+          </Card.Title>
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            onClick={() => setShowAdvancedNutrition(!showAdvancedNutrition)}
+          >
+            <i className={`bi ${showAdvancedNutrition ? 'bi-eye-slash' : 'bi-eye'} me-1`}></i>
+            {showAdvancedNutrition ? '詳細を隠す' : '詳細を表示'}
+          </Button>
+        </Card.Header>
+        <Card.Body>
+          {/* 基本栄養素 */}
+          <Row>
+            <Col md={6} className="mb-3">
+              <Form.Label>
+                カロリー (kcal)
+              </Form.Label>
+              <Form.Control
                 type="number"
                 name="calories"
                 value={mealData.calories}
                 onChange={handleChange}
                 step="0.1"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
               />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                タンパク質 (g):
-              </label>
-              <input
+            </Col>
+            <Col md={6} className="mb-3">
+              <Form.Label>
+                タンパク質 (g)
+              </Form.Label>
+              <Form.Control
                 type="number"
                 name="protein"
                 value={mealData.protein}
                 onChange={handleChange}
                 step="0.1"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
               />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                脂質 (g):
-              </label>
-              <input
+            </Col>
+            <Col md={6} className="mb-3">
+              <Form.Label>
+                脂質 (g)
+              </Form.Label>
+              <Form.Control
                 type="number"
                 name="fat"
                 value={mealData.fat}
                 onChange={handleChange}
                 step="0.1"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
               />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                炭水化物 (g):
-              </label>
-              <input
+            </Col>
+            <Col md={6} className="mb-3">
+              <Form.Label>
+                炭水化物 (g)
+              </Form.Label>
+              <Form.Control
                 type="number"
                 name="carbohydrates"
                 value={mealData.carbohydrates}
                 onChange={handleChange}
                 step="0.1"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}
               />
-            </div>
-          </div>
+            </Col>
+          </Row>
 
           {/* 詳細栄養素（折りたたみ式） */}
-          {showAdvancedNutrition && (
+          <Collapse in={showAdvancedNutrition}>
             <div>
-              <hr style={{ margin: '15px 0', border: 'none', borderTop: '1px solid #dee2e6' }} />
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                    食物繊維 (g):
-                  </label>
-                  <input
+              <hr />
+              <Row>
+                <Col md={4} className="mb-3">
+                  <Form.Label>食物繊維 (g)</Form.Label>
+                  <Form.Control
                     type="number"
                     name="dietary_fiber"
                     value={mealData.dietary_fiber}
                     onChange={handleChange}
                     step="0.1"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '14px'
-                    }}
+                    size="sm"
                   />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                    ナトリウム (mg):
-                  </label>
-                  <input
+                </Col>
+                <Col md={4} className="mb-3">
+                  <Form.Label>ナトリウム (mg)</Form.Label>
+                  <Form.Control
                     type="number"
                     name="sodium"
                     value={mealData.sodium}
                     onChange={handleChange}
                     step="0.1"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '14px'
-                    }}
+                    size="sm"
                   />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                    カルシウム (mg):
-                  </label>
-                  <input
+                </Col>
+                <Col md={4} className="mb-3">
+                  <Form.Label>カルシウム (mg)</Form.Label>
+                  <Form.Control
                     type="number"
                     name="calcium"
                     value={mealData.calcium}
                     onChange={handleChange}
                     step="0.1"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '14px'
-                    }}
+                    size="sm"
                   />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                    鉄分 (mg):
-                  </label>
-                  <input
+                </Col>
+                <Col md={4} className="mb-3">
+                  <Form.Label>鉄分 (mg)</Form.Label>
+                  <Form.Control
                     type="number"
                     name="iron"
                     value={mealData.iron}
                     onChange={handleChange}
                     step="0.01"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '14px'
-                    }}
+                    size="sm"
                   />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                    ビタミンA (μg):
-                  </label>
-                  <input
+                </Col>
+                <Col md={4} className="mb-3">
+                  <Form.Label>ビタミンA (μg)</Form.Label>
+                  <Form.Control
                     type="number"
                     name="vitamin_a"
                     value={mealData.vitamin_a}
                     onChange={handleChange}
                     step="0.1"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '14px'
-                    }}
+                    size="sm"
                   />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                    ビタミンB1 (mg):
-                  </label>
-                  <input
+                </Col>
+                <Col md={4} className="mb-3">
+                  <Form.Label>ビタミンB1 (mg)</Form.Label>
+                  <Form.Control
                     type="number"
                     name="vitamin_b1"
                     value={mealData.vitamin_b1}
                     onChange={handleChange}
                     step="0.01"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '14px'
-                    }}
+                    size="sm"
                   />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                    ビタミンB2 (mg):
-                  </label>
-                  <input
+                </Col>
+                <Col md={4} className="mb-3">
+                  <Form.Label>ビタミンB2 (mg)</Form.Label>
+                  <Form.Control
                     type="number"
                     name="vitamin_b2"
                     value={mealData.vitamin_b2}
                     onChange={handleChange}
                     step="0.01"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '14px'
-                    }}
+                    size="sm"
                   />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '14px', color: '#666' }}>
-                    ビタミンC (mg):
-                  </label>
-                  <input
+                </Col>
+                <Col md={4} className="mb-3">
+                  <Form.Label>ビタミンC (mg)</Form.Label>
+                  <Form.Control
                     type="number"
                     name="vitamin_c"
                     value={mealData.vitamin_c}
                     onChange={handleChange}
                     step="0.1"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '14px'
-                    }}
+                    size="sm"
                   />
-                </div>
-              </div>
+                </Col>
+              </Row>
             </div>
-          )}
-        </div>
+          </Collapse>
+        </Card.Body>
+      </Card>
 
-        <div style={{ marginTop: '25px', display: 'flex', gap: '10px' }}>
-          <button 
-            type="submit" 
-            style={{ 
-              padding: '12px 24px',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}
+      {/* ボタンエリア */}
+      <div className="d-flex gap-2 justify-content-between">
+        <Button 
+          type="submit" 
+          variant="success"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Spinner
+                as="span"
+                animation="border"
+                size="sm"
+                className="me-2"
+              />
+              記録中...
+            </>
+          ) : (
+            <>
+              <i className="bi bi-check-circle me-2"></i>
+              記録する
+            </>
+          )}
+        </Button>
+        {isManualInput && (
+          <Button
+            variant="outline-secondary"
+            onClick={() => setIsManualInput(false)}
           >
-            記録する
-          </button>
-          {isManualInput && (
-            <button
-              type="button"
-              onClick={() => setIsManualInput(false)}
-              style={{ 
-                padding: '12px 24px',
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                fontSize: '16px'
-              }}
-            >
-              食品検索に戻る
-            </button>
-          )}
-        </div>
-
-        {message && (
-          <div style={{ 
-            marginTop: '15px',
-            padding: '10px',
-            borderRadius: '5px',
-            backgroundColor: message.includes('失敗') ? '#f8d7da' : '#d4edda',
-            color: message.includes('失敗') ? '#721c24' : '#155724',
-            border: message.includes('失敗') ? '1px solid #f5c6cb' : '1px solid #c3e6cb'
-          }}>
-            {message}
-          </div>
+            <i className="bi bi-search me-2"></i>
+            食品検索に戻る
+          </Button>
         )}
-      </form>
-    </div>
+      </div>
+
+      {/* メッセージ */}
+      {message && (
+        <Alert 
+          variant={message.includes('失敗') ? 'danger' : 'success'} 
+          className="mt-3"
+        >
+          <i className={`bi ${message.includes('失敗') ? 'bi-exclamation-triangle' : 'bi-check-circle'} me-2`}></i>
+          {message}
+        </Alert>
+      )}
+    </Form>
   );
 };
 

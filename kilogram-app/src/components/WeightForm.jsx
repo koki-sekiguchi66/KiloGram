@@ -1,9 +1,10 @@
 import { useState } from 'react';
+import { Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
 import apiClient from '../api/axiosConfig'; 
 
 const WeightForm = ({ onWeightCreated }) => {
   const [formData, setFormData] = useState({
-    record_date: new Date().toISOString().split('T')[0], // 今日の日付を初期値に
+    record_date: new Date().toISOString().split('T')[0],
     weight: ''
   });
   const [message, setMessage] = useState('');
@@ -38,14 +39,12 @@ const WeightForm = ({ onWeightCreated }) => {
       setMessage('体重を記録しました！');
       onWeightCreated(response.data); 
       
-      // フォームリセット（日付は保持）
       const currentDate = formData.record_date;
       setFormData({
         record_date: currentDate,
         weight: ''
       });
       
-      // 成功メッセージを3秒後に消す
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('Failed to create weight record', error);
@@ -60,37 +59,29 @@ const WeightForm = ({ onWeightCreated }) => {
   };
 
   return (
-    <div>
-      <h3 style={{ color: '#333', marginBottom: '20px' }}>体重を記録</h3>
-      
-      <form onSubmit={handleSubmit}>
-        {/* 日付選択 */}
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>
-            記録日:
-          </label>
-          <input
-            type="date"
-            name="record_date"
-            value={formData.record_date}
-            onChange={handleChange}
-            style={{
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px',
-              boxSizing: 'border-box'
-            }}
-          />
-        </div>
+    <Form onSubmit={handleSubmit}>
+      {/* 日付選択 */}
+      <Form.Group className="mb-3">
+        <Form.Label className="fw-bold">
+          <i className="bi bi-calendar3 me-2"></i>
+          記録日
+        </Form.Label>
+        <Form.Control
+          type="date"
+          name="record_date"
+          value={formData.record_date}
+          onChange={handleChange}
+        />
+      </Form.Group>
 
-        {/* 体重入力 */}
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: '#555' }}>
-            体重 (kg):
-          </label>
-          <input
+      {/* 体重入力 */}
+      <Form.Group className="mb-3">
+        <Form.Label className="fw-bold">
+          <i className="bi bi-speedometer me-2"></i>
+          体重 (kg)
+        </Form.Label>
+        <InputGroup>
+          <Form.Control
             type="number"
             step="0.1"
             min="1"
@@ -100,64 +91,67 @@ const WeightForm = ({ onWeightCreated }) => {
             onChange={handleChange}
             required
             placeholder="例: 65.5"
-            style={{
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px',
-              boxSizing: 'border-box'
-            }}
           />
-          <small style={{ color: '#666', fontSize: '12px', marginTop: '5px', display: 'block' }}>
-            ※ 小数点第1位まで入力可能です
-          </small>
-        </div>
+          <InputGroup.Text>kg</InputGroup.Text>
+        </InputGroup>
+        <Form.Text className="text-muted">
+          <i className="bi bi-info-circle me-1"></i>
+          小数点第1位まで入力可能です
+        </Form.Text>
+      </Form.Group>
 
-        {/* 体重変化の簡単な目安表示 */}
-        {formData.weight && (
-          <div style={{ 
-            marginBottom: '20px',
-            padding: '15px',
-            backgroundColor: '#e7f3ff',
-            borderRadius: '5px',
-            border: '1px solid #b8daff'
-          }}>
-          </div>
-        )}
+      {/* 体重管理のヒント */}
+      {formData.weight && (
+        <Alert variant="info">
+          <Alert.Heading className="h6">
+            <i className="bi bi-lightbulb me-2"></i>
+            体重記録のポイント
+          </Alert.Heading>
+          <ul className="mb-0 small">
+            <li>毎日同じ時間帯に測定することをお勧めします</li>
+            <li>起床後、トイレ後の測定が最も正確です</li>
+            <li>体重は日々変動するので、長期的な変化を見ることが大切です</li>
+          </ul>
+        </Alert>
+      )}
 
-        <button 
+      {/* 送信ボタン */}
+      <div className="d-grid">
+        <Button 
           type="submit"
+          variant="info"
           disabled={isLoading}
-          style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: isLoading ? '#ccc' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            fontSize: '16px',
-            fontWeight: 'bold'
-          }}
         >
-          {isLoading ? '記録中...' : '記録する'}
-        </button>
+          {isLoading ? (
+            <>
+              <Spinner
+                as="span"
+                animation="border"
+                size="sm"
+                className="me-2"
+              />
+              記録中...
+            </>
+          ) : (
+            <>
+              <i className="bi bi-check-circle me-2"></i>
+              記録する
+            </>
+          )}
+        </Button>
+      </div>
 
-        {message && (
-          <div style={{ 
-            marginTop: '15px',
-            padding: '10px',
-            borderRadius: '5px',
-            backgroundColor: message.includes('失敗') || message.includes('確認') ? '#f8d7da' : '#d4edda',
-            color: message.includes('失敗') || message.includes('確認') ? '#721c24' : '#155724',
-            border: message.includes('失敗') || message.includes('確認') ? '1px solid #f5c6cb' : '1px solid #c3e6cb'
-          }}>
-            {message}
-          </div>
-        )}
-      </form>
-    </div>
+      {/* メッセージ */}
+      {message && (
+        <Alert 
+          variant={message.includes('失敗') || message.includes('確認') ? 'danger' : 'success'} 
+          className="mt-3"
+        >
+          <i className={`bi ${message.includes('失敗') || message.includes('確認') ? 'bi-exclamation-triangle' : 'bi-check-circle'} me-2`}></i>
+          {message}
+        </Alert>
+      )}
+    </Form>
   );
 };
 

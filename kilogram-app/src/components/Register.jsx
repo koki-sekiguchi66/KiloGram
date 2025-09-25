@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Form, Button, Alert, Spinner } from 'react-bootstrap';
 import axios from 'axios';
 
 const Register = ({ onRegisterSuccess }) => {
@@ -8,7 +9,7 @@ const Register = ({ onRegisterSuccess }) => {
     password: '',
     confirm_password: '',
   });
-  const [message, setMessage] = useState(''); 
+  const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -19,8 +20,8 @@ const Register = ({ onRegisterSuccess }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); 
-    setMessage(''); 
+    e.preventDefault();
+    setMessage('');
     setIsLoading(true);
 
     if (formData.password !== formData.confirm_password) {
@@ -31,24 +32,15 @@ const Register = ({ onRegisterSuccess }) => {
 
     try {
       const API_URL = 'http://127.0.0.1:8000/api/register/';
-      const dataToSend = {
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
-        confirm_password: formData.confirm_password,
-      };
-
-      const response = await axios.post(API_URL, dataToSend);
+      const response = await axios.post(API_URL, formData);
       console.log(response.data);
       setMessage('ユーザー登録が成功しました！ログインページに移動します...');
       
-      // 成功メッセージを少し表示してからログインページに移動
       setTimeout(() => {
         onRegisterSuccess();
       }, 2000);
     } catch (error) {
       console.error('Registration error:', error.response?.data);
-      // バックエンドからのエラーメッセージを表示
       if (error.response?.data) {
         const errorMessages = Object.values(error.response.data).join(' ');
         setMessage(`登録に失敗しました: ${errorMessages}`);
@@ -61,116 +53,110 @@ const Register = ({ onRegisterSuccess }) => {
   };
 
   return (
-    <div>
-      <h2 style={{ color: '#333', marginBottom: '20px' }}>新規登録</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', textAlign: 'left', color: '#555' }}>
-            ユーザー名:
-          </label>
-          <input
+    <>
+      <h3 className="text-center mb-4">
+        <i className="bi bi-person-plus text-success me-2"></i>
+        新規登録
+      </h3>
+      
+      <Form onSubmit={handleSubmit}>
+        <Form.Group className="mb-3">
+          <Form.Label>
+            <i className="bi bi-person me-1"></i>
+            ユーザー名
+          </Form.Label>
+          <Form.Control
             type="text"
             name="username"
             value={formData.username}
             onChange={handleChange}
             required
-            style={{
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px',
-              boxSizing: 'border-box'
-            }}
+            placeholder="ユーザー名を入力"
           />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', textAlign: 'left', color: '#555' }}>
-            メールアドレス:
-          </label>
-          <input
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>
+            <i className="bi bi-envelope me-1"></i>
+            メールアドレス
+          </Form.Label>
+          <Form.Control
             type="email"
             name="email"
             value={formData.email}
             onChange={handleChange}
             required
-            style={{
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px',
-              boxSizing: 'border-box'
-            }}
+            placeholder="メールアドレスを入力"
           />
-        </div>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', textAlign: 'left', color: '#555' }}>
-            パスワード:
-          </label>
-          <input
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>
+            <i className="bi bi-lock me-1"></i>
+            パスワード
+          </Form.Label>
+          <Form.Control
             type="password"
             name="password"
             value={formData.password}
             onChange={handleChange}
             required
-            style={{
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px',
-              boxSizing: 'border-box'
-            }}
+            placeholder="パスワードを入力"
           />
-        </div>
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', textAlign: 'left', color: '#555' }}>
-            パスワード (確認用):
-          </label>
-          <input
+        </Form.Group>
+
+        <Form.Group className="mb-4">
+          <Form.Label>
+            <i className="bi bi-lock-fill me-1"></i>
+            パスワード (確認用)
+          </Form.Label>
+          <Form.Control
             type="password"
             name="confirm_password"
             value={formData.confirm_password}
             onChange={handleChange}
             required
-            style={{
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px',
-              boxSizing: 'border-box'
-            }}
+            placeholder="パスワードを再入力"
           />
+        </Form.Group>
+
+        <div className="d-grid">
+          <Button 
+            type="submit"
+            variant="success"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Spinner
+                  as="span"
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  className="me-2"
+                />
+                登録中...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-circle me-2"></i>
+                登録
+              </>
+            )}
+          </Button>
         </div>
-        <button 
-          type="submit"
-          disabled={isLoading}
-          style={{
-            width: '100%',
-            padding: '12px',
-            backgroundColor: isLoading ? '#ccc' : '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '16px',
-            cursor: isLoading ? 'not-allowed' : 'pointer'
-          }}
-        >
-          {isLoading ? '登録中...' : '登録'}
-        </button>
-      </form>
+      </Form>
+
       {message && (
-        <p style={{ 
-          marginTop: '15px',
-          color: message.includes('成功') ? '#28a745' : '#dc3545',
-          fontSize: '14px'
-        }}>
+        <Alert 
+          variant={message.includes('成功') ? 'success' : 'danger'} 
+          className="mt-3"
+        >
+          <i className={`bi ${message.includes('成功') ? 'bi-check-circle' : 'bi-exclamation-triangle'} me-2`}></i>
           {message}
-        </p>
+        </Alert>
       )}
-    </div>
+    </>
   );
 };
 

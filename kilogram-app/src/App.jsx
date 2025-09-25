@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
+import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import Register from './components/Register';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 
 function App() {
   const [token, setToken] = useState(null);
-  const [currentView, setCurrentView] = useState('login'); 
+  const [currentView, setCurrentView] = useState('login');
 
   useEffect(() => {
-    // localStorageからトークンをチェック
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
@@ -21,14 +21,13 @@ function App() {
   };
 
   const handleRegisterSuccess = () => {
-    // 登録成功後はログイン画面に戻る
     setCurrentView('login');
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     setToken(null);
-    setCurrentView('login'); // ログアウト後はログイン画面に戻る
+    setCurrentView('login');
   };
 
   const switchToRegister = () => {
@@ -39,66 +38,69 @@ function App() {
     setCurrentView('login');
   };
 
-  // 認証済みの場合はダッシュボードを表示
   if (token) {
     return <Dashboard handleLogout={handleLogout} />;
   }
 
-  // 未認証の場合は認証フォームを表示
   return (
-    <div style={{ 
-      maxWidth: '400px', 
-      margin: '50px auto', 
-      padding: '20px',
-      textAlign: 'center'
-    }}>
-      <h1 style={{ color: '#333', marginBottom: '30px' }}>KiloGram</h1>
-      
-      {currentView === 'login' ? (
-        <div>
-          <Login onLoginSuccess={handleLoginSuccess} />
-          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
-            <p style={{ margin: '0 0 10px 0', color: '#666' }}>
-              まだアカウントをお持ちでないですか？
-            </p>
-            <button 
-              onClick={switchToRegister}
-              style={{ 
-                backgroundColor: '#28a745', 
-                color: 'white',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '5px',
-                cursor: 'pointer'
-              }}
-            >
-              新規登録
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div>
-          <Register onRegisterSuccess={handleRegisterSuccess} />
-          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '5px' }}>
-            <p style={{ margin: '0 0 10px 0', color: '#666' }}>
-              すでにアカウントをお持ちですか？
-            </p>
-            <button 
-              onClick={switchToLogin}
-              style={{ 
-                backgroundColor: '#007bff', 
-                color: 'white',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '5px',
-                cursor: 'pointer'
-              }}
-            >
-              ログイン
-            </button>
-          </div>
-        </div>
-      )}
+    <div className="min-vh-100 d-flex align-items-center bg-light">
+      <Container>
+        <Row className="justify-content-center">
+          <Col md={6} lg={5}>
+            <div className="text-center mb-4">
+              <h1 className="display-4 fw-bold text-primary mb-2">
+                <i className="bi bi-heart-pulse-fill me-2"></i>
+                KiloGram
+              </h1>
+              <p className="text-muted">健康的な生活をサポートする記録アプリ</p>
+            </div>
+
+            <Card className="shadow">
+              <Card.Body className="p-4">
+                {currentView === 'login' ? (
+                  <>
+                    <Login onLoginSuccess={handleLoginSuccess} />
+                    
+                    <hr className="my-4" />
+                    
+                    <div className="text-center">
+                      <p className="text-muted mb-3">
+                        まだアカウントをお持ちでないですか？
+                      </p>
+                      <Button 
+                        variant="outline-success"
+                        onClick={switchToRegister}
+                      >
+                        <i className="bi bi-person-plus me-2"></i>
+                        新規登録
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Register onRegisterSuccess={handleRegisterSuccess} />
+                    
+                    <hr className="my-4" />
+                    
+                    <div className="text-center">
+                      <p className="text-muted mb-3">
+                        すでにアカウントをお持ちですか？
+                      </p>
+                      <Button 
+                        variant="outline-primary"
+                        onClick={switchToLogin}
+                      >
+                        <i className="bi bi-box-arrow-in-right me-2"></i>
+                        ログイン
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      </Container>
     </div>
   );
 }
