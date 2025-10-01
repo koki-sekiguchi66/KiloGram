@@ -1,4 +1,3 @@
-// src/components/FoodSearchInput.jsx
 import { useState, useEffect, useRef } from 'react';
 import apiClient from '../api/axiosConfig';
 
@@ -12,7 +11,7 @@ const FoodSearchInput = ({ onFoodSelected }) => {
   const [error, setError] = useState('');
   const dropdownRef = useRef(null);
 
-  // 食品検索（デバウンス付き）
+  // 食品検索
   useEffect(() => {
     if (query.length < 2) {
       setResults([]);
@@ -303,32 +302,6 @@ const FoodSearchInput = ({ onFoodSelected }) => {
           <p style={{ margin: '0 0 10px 0', color: '#666' }}>
             「{query}」の検索結果が見つかりませんでした。
           </p>
-          <div style={{ fontSize: '0.9em', color: '#666' }}>
-            💡 検索のコツ:
-            <ul style={{ textAlign: 'left', marginTop: '8px', paddingLeft: '20px' }}>
-              <li>ひらがなやカタカナで試してみてください</li>
-              <li>「鶏肉」「りんご」など、シンプルな名前で検索してみてください</li>
-              <li>複数の単語は避けて、単一の食材名で検索してください</li>
-            </ul>
-          </div>
-          <button 
-            onClick={() => {
-              // カスタム食品作成機能は今後実装予定
-              alert('カスタム食品作成機能は今後実装予定です。\n現在は手動入力をご利用ください。');
-            }}
-            style={{ 
-              marginTop: '10px',
-              padding: '8px 16px',
-              backgroundColor: '#28a745',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            新しい食品として登録
-          </button>
         </div>
       )}
     </div>

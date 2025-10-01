@@ -1,23 +1,11 @@
 import { useState, useEffect } from 'react';
-import { 
-  Form, 
-  Button, 
-  Card, 
-  Alert, 
-  Spinner, 
-  Row, 
-  Col,
-  ButtonGroup,
-  Collapse
-} from 'react-bootstrap';
+import { Form, Button, Card, Alert, Spinner, Row, Col, Collapse } from 'react-bootstrap';
 import FoodSearchInput from './FoodSearchInput';
 import CustomFoodModal from './CustomFoodModal';
 import apiClient from '../api/axiosConfig';
 
 const MealForm = ({ onMealCreated }) => {
-  // 既存のstate
-  const [saveToCustom, setSaveToCustom] = useState(false); // 追加
-
+  const [saveToCustom, setSaveToCustom] = useState(false); 
   const [mealData, setMealData] = useState({
     record_date: new Date().toISOString().split('T')[0],
     meal_timing: 'breakfast',
@@ -94,14 +82,10 @@ const MealForm = ({ onMealCreated }) => {
     setMealData({ ...mealData, [e.target.name]: e.target.value });
   };
 
+  // CustomFoodコンポーネントでのAPIリクエスト
   const handleSaveAsCustomFood = async () => {
-    if (!mealData.meal_name.trim()) {
-      setMessage('食事名を入力してから保存してください。');
-      return;
-    }
-
     try {
-      const customFoodData = {
+      await apiClient.post('/foods/custom/', {
         name: mealData.meal_name,
         calories_per_100g: mealData.calories,
         protein_per_100g: mealData.protein,
@@ -115,10 +99,8 @@ const MealForm = ({ onMealCreated }) => {
         vitamin_b1_per_100g: mealData.vitamin_b1,
         vitamin_b2_per_100g: mealData.vitamin_b2,
         vitamin_c_per_100g: mealData.vitamin_c,
-      };
-
-      await apiClient.post('/foods/custom/', customFoodData);
-      setMessage('Myアイテムとして保存しました！');
+      });
+      setMessage('Myアイテムとして保存しました');
       setTimeout(() => setMessage(''), 3000);
     } catch (error) {
       console.error('カスタム食品保存エラー:', error);
@@ -134,7 +116,7 @@ const MealForm = ({ onMealCreated }) => {
     const multiplier = amount / 100;
     setMealData({
       ...mealData,
-      meal_name: `${customFood.name} (${amount}g)`,
+      meal_name: `${customFood.name}`,
       calories: Math.round(customFood.calories_per_100g * multiplier * 10) / 10,
       protein: Math.round(customFood.protein_per_100g * multiplier * 10) / 10,
       fat: Math.round(customFood.fat_per_100g * multiplier * 10) / 10,
@@ -149,6 +131,7 @@ const MealForm = ({ onMealCreated }) => {
       vitamin_c: Math.round(customFood.vitamin_c_per_100g * multiplier * 10) / 10,
     });
     setShowCustomFoodModal(false);
+    setIsManualInput(true); 
   };
 
   const handleSubmit = async (e) => {
@@ -185,7 +168,7 @@ const MealForm = ({ onMealCreated }) => {
             vitamin_c_per_100g: mealData.vitamin_c,
           };
           await apiClient.post('/foods/custom/', customFoodData);
-          setMessage('食事を記録し、Myアイテムとしても保存しました！');
+          setMessage('食事を記録し、Myアイテムとして保存しました！');
         } catch (error) {
           if (error.response?.data?.name && error.response.data.name.includes('already exists')) {
             setMessage('食事を記録しましたが、この名前の食品は既にMyアイテムに登録されています。');
@@ -219,7 +202,7 @@ const MealForm = ({ onMealCreated }) => {
         vitamin_b2: 0,
         vitamin_c: 0,
       });
-      setSaveToCustom(false); // チェックボックスをリセット
+      setSaveToCustom(false); 
       setIsManualInput(false);
       
       setTimeout(() => setMessage(''), 3000);
@@ -254,17 +237,19 @@ const MealForm = ({ onMealCreated }) => {
             <i className="bi bi-clock me-2"></i>
             食事タイミング
           </Form.Label>
-          <Form.Select 
-            name="meal_timing"
-            value={mealData.meal_timing} 
-            onChange={handleChange}
-          >
+          <div className="d-flex gap-2">
             {mealTimings.map((timing) => (
-              <option key={timing.value} value={timing.value}>
+              <Button
+                key={timing.value}
+                variant={mealData.meal_timing === timing.value ? "primary" : "outline-primary"}
+                onClick={() => handleChange({ target: { name: 'meal_timing', value: timing.value } })}
+                size="md"
+                className="px-4"
+              >
                 {timing.label}
-              </option>
+              </Button>
             ))}
-          </Form.Select>
+          </div>
         </Form.Group>
 
         {/* 入力方法選択 */}
@@ -274,11 +259,13 @@ const MealForm = ({ onMealCreated }) => {
               <i className="bi bi-gear me-2"></i>
               入力方法
             </Form.Label>
-            <div className="d-grid gap-2">
-              <ButtonGroup>
+            <div className="d-flex flex-column gap-2">
+              <div className="d-flex gap-2">
                 <Button
                   variant={!isManualInput ? "primary" : "outline-primary"}
                   onClick={() => setIsManualInput(false)}
+                  size="md"
+                  className="px-4 flex-grow-1"
                 >
                   <i className="bi bi-search me-2"></i>
                   食品検索
@@ -286,17 +273,21 @@ const MealForm = ({ onMealCreated }) => {
                 <Button
                   variant={isManualInput ? "primary" : "outline-primary"}
                   onClick={() => setIsManualInput(true)}
+                  size="md"
+                  className="px-4 flex-grow-1"
                 >
                   <i className="bi bi-pencil me-2"></i>
                   手動入力
                 </Button>
-              </ButtonGroup>
+              </div>
               <Button
-                variant="outline-success"
+                variant="outline-primary"
                 onClick={() => setShowCustomFoodModal(true)}
+                size="md"
+                className="px-4"
               >
                 <i className="bi bi-bookmark-heart me-2"></i>
-                Myアイテムから追加
+                Myアイテム
               </Button>
             </div>
           </Card.Body>
@@ -339,7 +330,7 @@ const MealForm = ({ onMealCreated }) => {
                 onClick={() => setShowAdvancedNutrition(!showAdvancedNutrition)}
               >
                 <i className={`bi ${showAdvancedNutrition ? 'bi-eye-slash' : 'bi-eye'} me-1`}></i>
-                {showAdvancedNutrition ? '詳細を隠す' : '詳細を表示'}
+                {showAdvancedNutrition ? '閉じる' : '詳細な栄養素を表示'}
               </Button>
             </div>
           </Card.Header>
@@ -530,15 +521,6 @@ const MealForm = ({ onMealCreated }) => {
               />
             )}
           </div>
-          {isManualInput && (
-            <Button
-              variant="outline-secondary"
-              onClick={() => setIsManualInput(false)}
-            >
-              <i className="bi bi-search me-2"></i>
-              食品検索に戻る
-            </Button>
-          )}
         </div>
 
         {/* メッセージ */}

@@ -1,17 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Container, 
-  Row, 
-  Col, 
-  Card, 
-  Navbar, 
-  Nav, 
-  Button, 
-  Alert,
-  Badge,
-  Dropdown,
-  Form
-} from 'react-bootstrap';
+import { Container, Row, Col, Card, Navbar, Nav, Button, 
+  Alert, Badge, Dropdown, Form } from 'react-bootstrap';
 import apiClient from '../api/axiosConfig'; 
 import MealForm from './MealForm';
 import WeightForm from './WeightForm';
@@ -21,7 +10,7 @@ import EditMealModal from './EditMealModal';
 
 const Dashboard = ({ handleLogout }) => {
   const [meals, setMeals] = useState([]);
-  const [allMeals, setAllMeals] = useState([]); // 全ての食事記録を保持
+  const [allMeals, setAllMeals] = useState([]); 
   const [weights, setWeights] = useState([]);
   const [message, setMessage] = useState('');
   const [editingMeal, setEditingMeal] = useState(null);
@@ -33,7 +22,6 @@ const Dashboard = ({ handleLogout }) => {
       try {
         const response = await apiClient.get('/meals/');
         setAllMeals(response.data);
-        // 初回読み込み時に今日の日付でフィルタ
         filterMealsByDate(response.data, selectedDate);
       } catch (error) {
         console.error('Failed to fetch meals', error);
@@ -65,7 +53,7 @@ const Dashboard = ({ handleLogout }) => {
     fetchDailySummary();
   }, [selectedDate]);
 
-  // 選択した日付で食事記録をフィルタリングする関数
+  // 選択した日付で食事記録をフィルタリング
   const filterMealsByDate = (mealList, date) => {
     const filteredMeals = mealList.filter(meal => meal.record_date === date);
     setMeals(filteredMeals.sort((a, b) => new Date(b.record_date) - new Date(a.record_date)));
@@ -252,7 +240,7 @@ const Dashboard = ({ handleLogout }) => {
                       onClick={() => handleDateChange(new Date().toISOString().split('T')[0])}
                     >
                       <i className="bi bi-calendar-today me-1"></i>
-                      今日
+                      今日の記録を見る
                     </Button>
                   )}
                 </div>
@@ -344,28 +332,30 @@ const Dashboard = ({ handleLogout }) => {
                                 {formatDate(meal.record_date)}
                               </Card.Subtitle>
                             </div>
-                            <Dropdown>
-                              <Dropdown.Toggle 
-                                variant="outline-secondary" 
+                            
+                            {/* 編集・削除ボタンを修正 */}
+                            <div className="d-flex gap-1 position-absolute top-0 end-0 p-2">
+                              <Button
                                 size="sm"
-                                id={`dropdown-${meal.id}`}
+                                variant="outline-primary"
+                                onClick={() => setEditingMeal(meal)}
+                                title="編集"
                               >
-                                <i className="bi bi-three-dots"></i>
-                              </Dropdown.Toggle>
-
-                              <Dropdown.Menu>
-                                <Dropdown.Item onClick={() => setEditingMeal(meal)}>
-                                  <i className="bi bi-pencil me-2"></i>編集
-                                </Dropdown.Item>
-                                <Dropdown.Divider />
-                                <Dropdown.Item 
-                                  onClick={() => handleMealDelete(meal.id)}
-                                  className="text-danger"
-                                >
-                                  <i className="bi bi-trash me-2"></i>削除
-                                </Dropdown.Item>
-                              </Dropdown.Menu>
-                            </Dropdown>
+                                <i className="bi bi-pencil"></i>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline-danger"
+                                onClick={() => {
+                                  if (window.confirm('この食事記録を削除してもよろしいですか？')) {
+                                    handleMealDelete(meal.id);
+                                  }
+                                }}
+                                title="削除"
+                              >
+                                <i className="bi bi-trash"></i>
+                              </Button>
+                            </div>
                           </div>
                           
                           <Row className="text-sm">

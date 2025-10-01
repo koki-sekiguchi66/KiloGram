@@ -21,7 +21,7 @@ from .views import (
 router = DefaultRouter()
 router.register(r'meals', MealRecordViewSet, basename='meal')
 router.register(r'weights', WeightRecordViewSet, basename='weight')
-router.register(r'custom-foods', CustomFoodViewSet, basename='customfood')
+router.register(r'foods/custom', CustomFoodViewSet, basename='custom-food')
 
 urlpatterns = [
     # 基本URL

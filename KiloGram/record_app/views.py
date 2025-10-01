@@ -1,8 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, viewsets, generics, permissions
-from rest_framework.decorators import api_view
-from django.utils import timezone
+from rest_framework.decorators import api_view, action
 from datetime import date
 from .models import MealRecord, WeightRecord, CustomFood
 from .serializers import MealRecordSerializer, UserRegistrationSerializer, WeightRecordSerializer, CustomFoodSerializer
@@ -53,6 +52,28 @@ class CustomFoodViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['post'])
+    def create_from_meal(self, request):
+        """食事記録からカスタム食品を作成するAPI"""
+        try:
+            calculator = NutritionCalculatorService()
+            custom_food = calculator.create_custom_food(request.user, request.data)
+            
+            return Response({
+                'message': 'カスタム食品を作成しました',
+                'food': {
+                    'id': f'custom_{custom_food.id}',
+                    'name': custom_food.name,
+                    'type': 'custom'
+                }
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
 
 
 class MealTimingChoicesView(APIView):

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Form, Button, Alert, Spinner } from 'react-bootstrap';
-import axios from 'axios';
+import apiClient from '../api/axiosConfig';
 
 const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({
@@ -23,8 +23,7 @@ const Login = ({ onLoginSuccess }) => {
     setIsLoading(true);
 
     try {
-      const API_URL = 'http://127.0.0.1:8000/api/login/';
-      const response = await axios.post(API_URL, formData);
+      const response = await apiClient.post('/login/', formData);
 
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);

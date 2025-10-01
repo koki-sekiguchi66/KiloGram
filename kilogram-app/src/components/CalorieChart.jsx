@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Card } from 'react-bootstrap';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -34,7 +34,7 @@ const CalorieChart = ({ meals }) => {
       }));
   }, [meals]);
 
-  // カスタムツールチップ
+  // グラフポップアップ用ツールチップ
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -78,7 +78,6 @@ const CalorieChart = ({ meals }) => {
           <div className="text-center py-5">
             <i className="bi bi-fire text-muted display-4"></i>
             <p className="text-muted mt-3">食事記録がまだありません。</p>
-            <p className="text-muted">食事を記録してカロリーの推移を確認しましょう！</p>
           </div>
         </Card.Body>
       </Card>
