@@ -94,26 +94,7 @@ const WeightForm = ({ onWeightCreated }) => {
           />
           <InputGroup.Text>kg</InputGroup.Text>
         </InputGroup>
-        <Form.Text className="text-muted">
-          <i className="bi bi-info-circle me-1"></i>
-          小数点第1位まで入力可能です
-        </Form.Text>
       </Form.Group>
-
-      {/* 体重管理のヒント */}
-      {formData.weight && (
-        <Alert variant="info">
-          <Alert.Heading className="h6">
-            <i className="bi bi-lightbulb me-2"></i>
-            体重記録のポイント
-          </Alert.Heading>
-          <ul className="mb-0 small">
-            <li>毎日同じ時間帯に測定することをお勧めします</li>
-            <li>起床後、トイレ後の測定が最も正確です</li>
-            <li>体重は日々変動するので、長期的な変化を見ることが大切です</li>
-          </ul>
-        </Alert>
-      )}
 
       {/* 送信ボタン */}
       <div className="d-grid">

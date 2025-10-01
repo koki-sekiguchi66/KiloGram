@@ -15,6 +15,8 @@ import {
 import apiClient from '../api/axiosConfig'; 
 import MealForm from './MealForm';
 import WeightForm from './WeightForm';
+import WeightChart from './WeightChart';
+import CalorieChart from './CalorieChart';
 import EditMealModal from './EditMealModal';
 
 const Dashboard = ({ handleLogout }) => {
@@ -179,7 +181,6 @@ const Dashboard = ({ handleLogout }) => {
       <Navbar bg="primary" variant="dark" className="shadow-sm">
         <Container>
           <Navbar.Brand>
-            <i className="bi bi-heart-pulse-fill me-2"></i>
             KiloGram
           </Navbar.Brand>
           <Nav>
@@ -263,7 +264,6 @@ const Dashboard = ({ handleLogout }) => {
                 <h6 className="text-primary mb-3">
                   <i className="bi bi-calendar3 me-2"></i>
                   {formatDate(selectedDate)} の栄養摂取量
-                  {isToday && <Badge bg="success" className="ms-2">今日</Badge>}
                 </h6>
                 <div className="nutrition-grid">
                   <div className="d-flex justify-content-between">
@@ -304,17 +304,15 @@ const Dashboard = ({ handleLogout }) => {
           </Card.Body>
         </Card>
         
-        {/* 記録一覧 */}
-        <Row>
-          <Col lg={8} className="mb-4">
+        {/* 食事記録一覧 */}
+        <Row className="mb-4">
+          <Col xs={12}>
             <Card className="shadow-sm">
-              <Card.Header className="bg-primary text-white d-flex justify-content-between align-items-center">
+              <Card.Header className="bg-success text-white d-flex justify-content-between align-items-center">
                 <Card.Title className="mb-0">
                   <i className="bi bi-list-ul me-2"></i>
                   {formatDate(selectedDate)} の食事記録
-                  {isToday && <Badge bg="light" text="primary" className="ms-2">今日</Badge>}
                 </Card.Title>
-                <Badge bg="light" text="primary">{meals.length}件</Badge>
               </Card.Header>
               <Card.Body>
                 {message && (
@@ -327,7 +325,7 @@ const Dashboard = ({ handleLogout }) => {
                 {meals.length > 0 ? (
                   <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
                     {meals.map((meal) => (
-                      <Card key={meal.id} className="mb-3 meal-card border-start border-4 border-primary">
+                      <Card key={meal.id} className="mb-3 meal-card border-start border-4">
                         <Card.Body>
                           <div className="d-flex justify-content-between align-items-start mb-2">
                             <div>
@@ -398,7 +396,6 @@ const Dashboard = ({ handleLogout }) => {
                     <p className="text-muted mt-2">
                       {isToday ? '今日の食事記録はまだありません。' : `${formatDate(selectedDate)}の食事記録はありません。`}
                     </p>
-                    <p className="text-muted">上のフォームから記録を追加しましょう！</p>
                     {!isToday && (
                       <Button
                         variant="outline-primary"
@@ -413,49 +410,19 @@ const Dashboard = ({ handleLogout }) => {
               </Card.Body>
             </Card>
           </Col>
-          
-          
-          <Col lg={4} className="mb-4">
-            <Card className="shadow-sm">
-              <Card.Header className="bg-info text-white d-flex justify-content-between align-items-center">
-                <Card.Title className="mb-0">
-                  <i className="bi bi-speedometer2 me-2"></i>
-                  体重記録一覧
-                </Card.Title>
-                <Badge bg="light" text="info">{weights.length}件</Badge>
-              </Card.Header>
-              <Card.Body>
-                {weights.length > 0 ? (
-                  <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                    {weights.map((weight) => (
-                      <Card key={weight.id} className="mb-2 weight-item">
-                        <Card.Body className="py-2">
-                          <div className="d-flex justify-content-between align-items-center">
-                            <div>
-                              <small className="text-muted">
-                                <i className="bi bi-calendar3 me-1"></i>
-                                {formatDate(weight.record_date)}
-                              </small>
-                            </div>
-                            <div className="text-end">
-                              <h6 className="mb-0 text-primary">
-                                <i className="bi bi-speedometer me-1"></i>
-                                {weight.weight} kg
-                              </h6>
-                            </div>
-                          </div>
-                        </Card.Body>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <i className="bi bi-speedometer text-muted display-6"></i>
-                    <p className="text-muted mt-2">まだ体重記録はありません。</p>
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
+        </Row>
+
+        {/* カロリー推移グラフ */}
+        <Row className="mb-4">
+          <Col xs={12}>
+            <CalorieChart meals={allMeals} />
+          </Col>
+        </Row>
+
+        {/* 体重推移グラフ */}
+        <Row>
+          <Col xs={12}>
+            <WeightChart weights={weights} />
           </Col>
         </Row>
       </Container>

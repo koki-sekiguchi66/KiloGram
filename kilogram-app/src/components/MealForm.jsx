@@ -332,16 +332,7 @@ const MealForm = ({ onMealCreated }) => {
               栄養情報 {!isManualInput && mealData.meal_name ? '(自動計算)' : '(手動入力)'}
             </Card.Title>
             <div className="d-flex gap-2">
-              {isManualInput && mealData.meal_name && (
-                <Button
-                  variant="outline-success"
-                  size="sm"
-                  onClick={handleSaveAsCustomFood}
-                >
-                  <i className="bi bi-bookmark-plus me-1"></i>
-                  Myアイテムに保存
-                </Button>
-              )}
+              
               <Button
                 variant="outline-secondary"
                 size="sm"

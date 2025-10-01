@@ -28,13 +28,13 @@ class WeightRecordViewSet(viewsets.ModelViewSet):
         return WeightRecord.objects.filter(user=self.request.user).order_by('-record_date')
     
     def create(self, request, *args, **kwargs):
-        print("aaaaa")
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         weight_data = serializer.validated_data['weight']
+        record_date = serializer.validated_data['record_date']
         obj, created = WeightRecord.objects.update_or_create(
             user=request.user, 
-            record_date=timezone.now().today(),
+            record_date=record_date,
             defaults={'weight': weight_data}
         )
         response_serializer = self.get_serializer(obj)

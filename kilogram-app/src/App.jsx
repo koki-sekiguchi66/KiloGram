@@ -52,7 +52,6 @@ function App() {
                 <i className="bi bi-heart-pulse-fill me-2"></i>
                 KiloGram
               </h1>
-              <p className="text-muted">健康的な生活をサポートする記録アプリ</p>
             </div>
 
             <Card className="shadow">
