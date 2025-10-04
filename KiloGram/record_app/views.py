@@ -1,7 +1,10 @@
+# KiloGram/record_app/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, viewsets, generics, permissions
-from rest_framework.decorators import api_view, action
+from rest_framework.decorators import api_view, action, permission_classes
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 from datetime import date
 
 from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu
@@ -95,6 +98,7 @@ class UserRegistrationView(generics.CreateAPIView):
 
 
 @api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
 def search_foods(request):
     """食品検索API"""
     query = request.GET.get('q', '')
@@ -111,6 +115,7 @@ def search_foods(request):
 
 
 @api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
 def food_suggestions(request):
     """食品名候補API（オートコンプリート用）"""
     query = request.GET.get('q', '')
@@ -124,6 +129,7 @@ def food_suggestions(request):
 
 
 @api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
 def calculate_nutrition(request):
     """栄養素計算API"""
     food_id = request.data.get('food_id')
@@ -145,6 +151,7 @@ def calculate_nutrition(request):
 
 
 @api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
 def daily_nutrition_summary(request):
     """日別栄養素サマリーAPI"""
     target_date_str = request.GET.get('date')
@@ -167,6 +174,7 @@ def daily_nutrition_summary(request):
 
 
 @api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
 def create_custom_food(request):
     """カスタム食品作成API"""
     try:
@@ -187,6 +195,7 @@ def create_custom_food(request):
 
 
 @api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
 def list_custom_foods(request):
     """ユーザーのカスタム食品一覧取得API"""
     try:
@@ -198,6 +207,7 @@ def list_custom_foods(request):
 
 
 @api_view(['PUT'])
+@permission_classes([permissions.IsAuthenticated])
 def update_custom_food(request, food_id):
     """カスタム食品更新API"""
     try:
@@ -214,6 +224,7 @@ def update_custom_food(request, food_id):
 
 
 @api_view(['DELETE'])
+@permission_classes([permissions.IsAuthenticated])
 def delete_custom_food(request, food_id):
     """カスタム食品削除API"""
     try:
@@ -225,6 +236,9 @@ def delete_custom_food(request, food_id):
     except Exception as e:
         return Response({'error': str(e)}, status=400)
 
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
 def update_cafeteria_menus(request):
     """食堂メニューを更新"""
     try:
@@ -239,6 +253,7 @@ def update_cafeteria_menus(request):
 
 
 @api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
 def list_cafeteria_menus(request):
     """食堂メニュー一覧取得"""
     category = request.GET.get('category')

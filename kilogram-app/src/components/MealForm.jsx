@@ -138,6 +138,28 @@ const MealForm = ({ onMealCreated }) => {
     setIsManualInput(true); 
   };
 
+  // handleMenuSelectedを修正
+  const handleMenuSelected = (menu) => {
+    setMealData({
+      ...mealData,
+      meal_name: menu.name,
+      calories: menu.calories,
+      protein: menu.protein,
+      fat: menu.fat,
+      carbohydrates: menu.carbohydrates,
+      dietary_fiber: menu.dietary_fiber,
+      sodium: menu.sodium,
+      calcium: menu.calcium,
+      iron: menu.iron,
+      vitamin_a: menu.vitamin_a,
+      vitamin_b1: menu.vitamin_b1,
+      vitamin_b2: menu.vitamin_b2,
+      vitamin_c: menu.vitamin_c,
+    });
+    setShowCafeteriaModal(false);
+    setIsManualInput(true); // 手動入力モードに切り替え
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
@@ -561,7 +583,7 @@ const MealForm = ({ onMealCreated }) => {
         <CafeteriaMenu
           show={showCafeteriaModal}
           onClose={() => setShowCafeteriaModal(false)}
-          onMenuSelected={handleFoodSelected}
+          onMenuSelected={handleMenuSelected}
         />
       )}
     </>

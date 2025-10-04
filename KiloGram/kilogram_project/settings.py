@@ -111,9 +111,36 @@ REST_FRAMEWORK = {
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# CORS設定
 CORS_ALLOWED_ORIGINS_str = os.getenv('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS_str.split(',') if CORS_ALLOWED_ORIGINS_str else []
+
 CORS_ALLOW_HEADERS = [
     'Authorization',
     'Content-Type',
+]
+
+# 開発環境用のCORS設定（本番環境では削除すること）
+if DEBUG:
+    CORS_ALLOWED_ORIGINS += [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+    ]
+
+# CSRF設定
+CSRF_TRUSTED_ORIGINS_str = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+CSRF_TRUSTED_ORIGINS = CSRF_TRUSTED_ORIGINS_str.split(',') if CSRF_TRUSTED_ORIGINS_str else []
+
+# 開発環境用のCSRF設定
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS += [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+    ]
+
+# REST FrameworkでCSRFチェックを無効化
+# Authorizationヘッダーを使用するAPIリクエストではCSRFトークンが不要
+REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = [
+    'rest_framework.authentication.TokenAuthentication',
+    'rest_framework.authentication.SessionAuthentication',
 ]
