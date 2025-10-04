@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
-import dotenv         
-import dj_database_url 
+import dotenv
+import dj_database_url
+from celery.schedules import crontab
 
 dotenv.load_dotenv()
 
@@ -19,6 +20,21 @@ ALLOWED_HOSTS_str = os.getenv('ALLOWED_HOST', '')
 ALLOWED_HOSTS = ALLOWED_HOSTS_str.split(',') if ALLOWED_HOSTS_str else []
 
 
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Tokyo'
+
+
+CELERY_BEAT_SCHEDULE = {
+    'update-cafeteria-menus-weekly': {
+        'task': 'record_app.tasks.update_cafeteria_menus_task',
+        'schedule': crontab(hour=8, minute=0, day_of_week='monday'),
+    },
+}
 
 
 INSTALLED_APPS = [

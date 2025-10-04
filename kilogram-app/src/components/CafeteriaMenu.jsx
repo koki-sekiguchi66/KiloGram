@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal, Button, Card, Badge, Spinner, Alert, Tabs, Tab } from 'react-bootstrap';
 import apiClient from '../api/axiosConfig';
 
 const CafeteriaMenu = ({ show, onClose, onMenuSelected }) => {
   const [menus, setMenus] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [updating, setUpdating] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedMenu, setSelectedMenu] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
@@ -19,27 +18,20 @@ const CafeteriaMenu = ({ show, onClose, onMenuSelected }) => {
     { key: 'dessert', label: 'デザート' },
   ];
 
-  const handleUpdateMenus = async () => {
-    setUpdating(true);
-    setError('');
-    try {
-      await apiClient.post('/cafeteria/update/');
-      await fetchMenus();
-      setError('');
-    } catch (err) {
-      setError('メニュー更新に失敗しました');
-    } finally {
-      setUpdating(false);
+  useEffect(() => {
+    if (show) {
+      fetchMenus();
     }
-  };
+  }, [show]);
 
   const fetchMenus = async () => {
     setLoading(true);
+    setError('');
     try {
       const response = await apiClient.get('/cafeteria/list/');
       setMenus(response.data);
     } catch (err) {
-      setError('メニュー取得に失敗しました');
+      setError('メニューの取得に失敗しました');
     } finally {
       setLoading(false);
     }
@@ -71,8 +63,8 @@ const CafeteriaMenu = ({ show, onClose, onMenuSelected }) => {
     }
   };
 
-  const filteredMenus = activeCategory === 'all' 
-    ? menus 
+  const filteredMenus = activeCategory === 'all'
+    ? menus
     : menus.filter(m => m.category === activeCategory);
 
   return (
@@ -86,30 +78,6 @@ const CafeteriaMenu = ({ show, onClose, onMenuSelected }) => {
       <Modal.Body>
         {error && <Alert variant="danger">{error}</Alert>}
 
-        <div className="d-flex gap-2 mb-3">
-          <Button
-            variant="primary"
-            onClick={handleUpdateMenus}
-            disabled={updating}
-          >
-            {updating ? (
-              <>
-                <Spinner size="sm" className="me-2" />
-                更新中...
-              </>
-            ) : (
-              <>
-                <i className="bi bi-arrow-clockwise me-2"></i>
-                メニューを更新
-              </>
-            )}
-          </Button>
-          <Button variant="outline-secondary" onClick={fetchMenus}>
-            <i className="bi bi-list me-2"></i>
-            一覧表示
-          </Button>
-        </div>
-
         <Tabs activeKey={activeCategory} onSelect={setActiveCategory} className="mb-3">
           {categories.map(cat => (
             <Tab key={cat.key} eventKey={cat.key} title={cat.label} />
@@ -119,10 +87,11 @@ const CafeteriaMenu = ({ show, onClose, onMenuSelected }) => {
         {loading ? (
           <div className="text-center p-4">
             <Spinner animation="border" />
+            <p className="mt-2">メニューを取得中...</p>
           </div>
         ) : filteredMenus.length === 0 ? (
           <div className="text-center p-4 text-muted">
-            メニューがありません
+            <p>メニューはありません。</p>
           </div>
         ) : (
           <div style={{ maxHeight: '400px', overflowY: 'auto' }}>

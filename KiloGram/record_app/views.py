@@ -1,4 +1,3 @@
-# KiloGram/record_app/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, viewsets, generics, permissions
@@ -9,12 +8,12 @@ from datetime import date
 
 from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu
 
-from .serializers import (MealRecordSerializer, UserRegistrationSerializer, WeightRecordSerializer, 
+from .serializers import (MealRecordSerializer, UserRegistrationSerializer, WeightRecordSerializer,
                         CustomFoodSerializer, CafeteriaMenuSerializer
                         )
 
 from .business_logic.nutrition_calculator import NutritionCalculatorService
-from .business_logic.cafeteria_scraping import CafeteriaScraper
+from .tasks import update_cafeteria_menus_task
 
 
 class MealRecordViewSet(viewsets.ModelViewSet):
@@ -34,21 +33,21 @@ class WeightRecordViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return WeightRecord.objects.filter(user=self.request.user).order_by('-record_date')
-    
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         weight_data = serializer.validated_data['weight']
         record_date = serializer.validated_data['record_date']
         obj, created = WeightRecord.objects.update_or_create(
-            user=request.user, 
+            user=request.user,
             record_date=record_date,
             defaults={'weight': weight_data}
         )
         response_serializer = self.get_serializer(obj)
-        
+
         status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
-        
+
         return Response(response_serializer.data, status=status_code)
 
 
@@ -71,7 +70,7 @@ class CustomFoodViewSet(viewsets.ModelViewSet):
         try:
             calculator = NutritionCalculatorService()
             custom_food = calculator.create_custom_food(request.user, request.data)
-            
+
             return Response({
                 'message': 'カスタム食品を作成しました',
                 'food': {
@@ -80,7 +79,7 @@ class CustomFoodViewSet(viewsets.ModelViewSet):
                     'type': 'custom'
                 }
             }, status=status.HTTP_201_CREATED)
-            
+
         except Exception as e:
             return Response({'error': str(e)}, status=400)
 
@@ -104,13 +103,13 @@ def search_foods(request):
     query = request.GET.get('q', '')
     if not query:
         return Response({'error': '検索キーワードが必要です'}, status=400)
-    
+
     if len(query) < 2:
         return Response({'foods': []})
-    
+
     calculator = NutritionCalculatorService()
     results = calculator.search_foods(query, request.user)
-    
+
     return Response({'foods': results})
 
 
@@ -121,10 +120,10 @@ def food_suggestions(request):
     query = request.GET.get('q', '')
     if not query or len(query) < 2:
         return Response({'suggestions': []})
-    
+
     calculator = NutritionCalculatorService()
     suggestions = calculator.get_food_suggestions(query)
-    
+
     return Response({'suggestions': suggestions})
 
 
@@ -134,14 +133,14 @@ def calculate_nutrition(request):
     """栄養素計算API"""
     food_id = request.data.get('food_id')
     amount = request.data.get('amount', 100)
-    
+
     if not food_id:
         return Response({'error': 'food_idが必要です'}, status=400)
-    
+
     try:
         calculator = NutritionCalculatorService()
         nutrition = calculator.calculate_nutrition_for_amount(food_id, float(amount))
-        
+
         return Response({
             'nutrition': nutrition,
             'amount': amount
@@ -155,7 +154,7 @@ def calculate_nutrition(request):
 def daily_nutrition_summary(request):
     """日別栄養素サマリーAPI"""
     target_date_str = request.GET.get('date')
-    
+
     if target_date_str:
         try:
             target_date = date.fromisoformat(target_date_str)
@@ -163,10 +162,10 @@ def daily_nutrition_summary(request):
             return Response({'error': '日付形式が正しくありません（YYYY-MM-DD）'}, status=400)
     else:
         target_date = date.today()
-    
+
     calculator = NutritionCalculatorService()
     summary = calculator.get_daily_nutrition_summary(request.user, target_date)
-    
+
     return Response({
         'date': target_date,
         'nutrition_summary': summary
@@ -180,7 +179,7 @@ def create_custom_food(request):
     try:
         calculator = NutritionCalculatorService()
         custom_food = calculator.create_custom_food(request.user, request.data)
-        
+
         return Response({
             'message': 'カスタム食品を作成しました',
             'food': {
@@ -189,7 +188,7 @@ def create_custom_food(request):
                 'type': 'custom'
             }
         }, status=status.HTTP_201_CREATED)
-        
+
     except Exception as e:
         return Response({'error': str(e)}, status=400)
 
@@ -237,30 +236,18 @@ def delete_custom_food(request, food_id):
         return Response({'error': str(e)}, status=400)
 
 
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def update_cafeteria_menus(request):
-    """食堂メニューを更新"""
-    try:
-        scraper = CafeteriaScraper()
-        count = scraper.fetch_and_update_menus()
-        return Response({
-            'message': 'メニューを更新しました',
-            'count': count
-        })
-    except Exception as e:
-        return Response({'error': str(e)}, status=500)
-
-
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def list_cafeteria_menus(request):
-    """食堂メニュー一覧取得"""
+    """食堂メニュー一覧取得（データがなければ即時実行、あれば毎週月曜8時更新）"""
+    if not CafeteriaMenu.objects.exists():
+        update_cafeteria_menus_task.delay()
+
     category = request.GET.get('category')
     menus = CafeteriaMenu.objects.all()
-    
+
     if category:
         menus = menus.filter(category=category)
-    
+
     serializer = CafeteriaMenuSerializer(menus, many=True)
     return Response(serializer.data)

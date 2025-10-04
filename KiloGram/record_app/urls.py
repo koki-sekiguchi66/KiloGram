@@ -5,7 +5,7 @@ from rest_framework.authtoken.views import obtain_auth_token
 from .views import (
     MealTimingChoicesView, MealRecordViewSet, WeightRecordViewSet, CustomFoodViewSet, UserRegistrationView,
     search_foods, food_suggestions, calculate_nutrition, daily_nutrition_summary, create_custom_food, 
-    list_custom_foods, update_custom_food, delete_custom_food, update_cafeteria_menus, list_cafeteria_menus
+    list_custom_foods, update_custom_food, delete_custom_food, list_cafeteria_menus
     )
 
 router = DefaultRouter()
@@ -33,6 +33,5 @@ urlpatterns = [
     path('nutrition/daily-summary/', daily_nutrition_summary, name='daily-nutrition-summary'),
 
     # 食堂メニュー
-    path('cafeteria/update/', update_cafeteria_menus, name='update-cafeteria'),
     path('cafeteria/list/', list_cafeteria_menus, name='list-cafeteria'),
 ]
