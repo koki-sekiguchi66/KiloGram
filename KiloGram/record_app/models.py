@@ -107,3 +107,47 @@ class CustomFood(models.Model):
         verbose_name_plural = "カスタム食品"
         unique_together = ['user', 'name']
 
+# record_app/models.py
+
+class CafeteriaMenu(models.Model):
+    """食堂メニュー情報"""
+    
+    MENU_CATEGORY = [
+        ('main', '主菜'),
+        ('side', '副菜'),
+        ('noodle', '麺類'),
+        ('rice', '丼・カレー'),
+        ('dessert', 'デザート'),
+        ('order', 'オーダー'),
+        ('kebab', 'ケバブ＆ベジタリアン'),
+        ('parfait', 'パフェ'),
+        ('night', '夜限定'),
+        ('other', 'その他'),
+    ]
+    
+    menu_id = models.CharField(max_length=20, unique=True, verbose_name='メニューID')
+    name = models.CharField(max_length=200, verbose_name='メニュー名')
+    category = models.CharField(max_length=20, choices=MENU_CATEGORY, verbose_name='カテゴリー')
+    
+    calories = models.FloatField(verbose_name='エネルギー(kcal)')
+    protein = models.FloatField(verbose_name='タンパク質(g)')
+    fat = models.FloatField(verbose_name='脂質(g)')
+    carbohydrates = models.FloatField(verbose_name='炭水化物(g)')
+    dietary_fiber = models.FloatField(default=0, verbose_name='食物繊維(g)')
+    sodium = models.FloatField(default=0, verbose_name='食塩相当量(g)')
+    calcium = models.FloatField(default=0, verbose_name='カルシウム(mg)')
+    iron = models.FloatField(default=0, verbose_name='鉄(mg)')
+    vitamin_a = models.FloatField(default=0, verbose_name='ビタミンA(μg)')
+    vitamin_b1 = models.FloatField(default=0, verbose_name='ビタミンB1(mg)')
+    vitamin_b2 = models.FloatField(default=0, verbose_name='ビタミンB2(mg)')
+    vitamin_c = models.FloatField(default=0, verbose_name='ビタミンC(mg)')
+    
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
+    
+    class Meta:
+        verbose_name = '食堂メニュー'
+        verbose_name_plural = '食堂メニュー'
+        ordering = ['category', 'name']
+    
+    def __str__(self):
+        return f"{self.get_category_display()} - {self.name}"

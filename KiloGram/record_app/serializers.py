@@ -1,6 +1,6 @@
 # record_app/serializers.py
 from rest_framework import serializers
-from .models import MealRecord, WeightRecord, StandardFood, CustomFood
+from .models import MealRecord, WeightRecord, StandardFood, CustomFood, CafeteriaMenu
 from django.contrib.auth.models import User
 
 class MealRecordSerializer(serializers.ModelSerializer):
@@ -51,3 +51,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         validated_data.pop('confirm_password')
         user = User.objects.create_user(**validated_data)
         return user
+
+
+
+class CafeteriaMenuSerializer(serializers.ModelSerializer):
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    
+    class Meta:
+        model = CafeteriaMenu
+        fields = [
+            'id', 'menu_id', 'name', 'category', 'category_display',
+            'calories', 'protein', 'fat', 'carbohydrates',
+            'dietary_fiber', 'sodium', 'calcium', 'iron',
+            'vitamin_a', 'vitamin_b1', 'vitamin_b2', 'vitamin_c',
+            'updated_at'
+        ]

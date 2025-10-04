@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Form, Button, Card, Alert, Spinner, Row, Col, Collapse } from 'react-bootstrap';
+
 import FoodSearchInput from './FoodSearchInput';
 import CustomFoodModal from './CustomFoodModal';
+import CafeteriaMenu from './CafeteriaMenu';
+
 import apiClient from '../api/axiosConfig';
 
 const MealForm = ({ onMealCreated }) => {
@@ -30,6 +33,7 @@ const MealForm = ({ onMealCreated }) => {
   const [showAdvancedNutrition, setShowAdvancedNutrition] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showCustomFoodModal, setShowCustomFoodModal] = useState(false);
+  const [showCafeteriaModal, setShowCafeteriaModal] = useState(false);
 
   useEffect(() => {
     const fetchMealTimings = async () => {
@@ -289,6 +293,15 @@ const MealForm = ({ onMealCreated }) => {
                 <i className="bi bi-bookmark-heart me-2"></i>
                 Myアイテム
               </Button>
+              <Button
+                variant="outline-success"
+                onClick={() => setShowCafeteriaModal(true)}
+                size="md"
+                className="px-4 mt-2 w-100"
+              >
+                <i className="bi bi-shop me-2"></i>
+                食堂メニューから選択
+              </Button>
             </div>
           </Card.Body>
         </Card>
@@ -541,6 +554,14 @@ const MealForm = ({ onMealCreated }) => {
           show={showCustomFoodModal}
           onClose={() => setShowCustomFoodModal(false)}
           onFoodSelected={handleCustomFoodSelected}
+        />
+      )}
+
+      {showCafeteriaModal && (
+        <CafeteriaMenu
+          show={showCafeteriaModal}
+          onClose={() => setShowCafeteriaModal(false)}
+          onMenuSelected={handleFoodSelected}
         />
       )}
     </>

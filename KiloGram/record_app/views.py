@@ -3,9 +3,15 @@ from rest_framework.response import Response
 from rest_framework import status, viewsets, generics, permissions
 from rest_framework.decorators import api_view, action
 from datetime import date
-from .models import MealRecord, WeightRecord, CustomFood
-from .serializers import MealRecordSerializer, UserRegistrationSerializer, WeightRecordSerializer, CustomFoodSerializer
+
+from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu
+
+from .serializers import (MealRecordSerializer, UserRegistrationSerializer, WeightRecordSerializer, 
+                        CustomFoodSerializer, CafeteriaMenuSerializer
+                        )
+
 from .business_logic.nutrition_calculator import NutritionCalculatorService
+from .business_logic.cafeteria_scraping import CafeteriaScraper
 
 
 class MealRecordViewSet(viewsets.ModelViewSet):
@@ -218,3 +224,28 @@ def delete_custom_food(request, food_id):
         return Response({'error': 'カスタム食品が見つかりません'}, status=404)
     except Exception as e:
         return Response({'error': str(e)}, status=400)
+
+def update_cafeteria_menus(request):
+    """食堂メニューを更新"""
+    try:
+        scraper = CafeteriaScraper()
+        count = scraper.fetch_and_update_menus()
+        return Response({
+            'message': 'メニューを更新しました',
+            'count': count
+        })
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+
+@api_view(['GET'])
+def list_cafeteria_menus(request):
+    """食堂メニュー一覧取得"""
+    category = request.GET.get('category')
+    menus = CafeteriaMenu.objects.all()
+    
+    if category:
+        menus = menus.filter(category=category)
+    
+    serializer = CafeteriaMenuSerializer(menus, many=True)
+    return Response(serializer.data)
