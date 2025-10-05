@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { Form, Button, Alert, Spinner } from 'react-bootstrap';
-import axios from 'axios';
+import apiClient from '../api/axiosConfig';
 
 const Register = ({ onRegisterSuccess }) => {
   const [formData, setFormData] = useState({
     username: '',
-    email: '',
     password: '',
-    confirm_password: '',
   });
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -24,28 +22,16 @@ const Register = ({ onRegisterSuccess }) => {
     setMessage('');
     setIsLoading(true);
 
-    if (formData.password !== formData.confirm_password) {
-      setMessage('パスワードが一致しません。');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const API_URL = 'http://127.0.0.1:8000/api/register/';
-      const response = await axios.post(API_URL, formData);
-      console.log(response.data);
-      setMessage('ユーザー登録が成功しました！ログインページに移動します...');
-      
-      setTimeout(() => {
-        onRegisterSuccess();
-      }, 2000);
+      const response = await apiClient.post('/register/', formData);
+      setMessage('アカウントの作成に成功しました！');
+      onRegisterSuccess();
     } catch (error) {
       console.error('Registration error:', error.response?.data);
-      if (error.response?.data) {
-        const errorMessages = Object.values(error.response.data).join(' ');
-        setMessage(`登録に失敗しました: ${errorMessages}`);
+      if (error.response?.data?.username?.includes('already exists')) {
+        setMessage('このユーザー名は既に使用されています。');
       } else {
-        setMessage('登録に失敗しました。もう一度お試しください。');
+        setMessage('アカウントの作成に失敗しました。入力内容を確認してください。');
       }
     } finally {
       setIsLoading(false);
@@ -55,8 +41,8 @@ const Register = ({ onRegisterSuccess }) => {
   return (
     <>
       <h3 className="text-center mb-4">
-        <i className="bi bi-person-plus text-success me-2"></i>
-        新規登録
+        <i className="bi bi-person-plus text-primary me-2"></i>
+        アカウント作成
       </h3>
       
       <Form onSubmit={handleSubmit}>
@@ -75,22 +61,7 @@ const Register = ({ onRegisterSuccess }) => {
           />
         </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>
-            <i className="bi bi-envelope me-1"></i>
-            メールアドレス
-          </Form.Label>
-          <Form.Control
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            placeholder="メールアドレスを入力"
-          />
-        </Form.Group>
-
-        <Form.Group className="mb-3">
+        <Form.Group className="mb-4">
           <Form.Label>
             <i className="bi bi-lock me-1"></i>
             パスワード
@@ -105,25 +76,10 @@ const Register = ({ onRegisterSuccess }) => {
           />
         </Form.Group>
 
-        <Form.Group className="mb-4">
-          <Form.Label>
-            <i className="bi bi-lock-fill me-1"></i>
-            パスワード (確認用)
-          </Form.Label>
-          <Form.Control
-            type="password"
-            name="confirm_password"
-            value={formData.confirm_password}
-            onChange={handleChange}
-            required
-            placeholder="パスワードを再入力"
-          />
-        </Form.Group>
-
         <div className="d-grid">
           <Button 
-            type="submit"
-            variant="success"
+            type="submit" 
+            variant="primary"
             disabled={isLoading}
           >
             {isLoading ? (
@@ -135,12 +91,12 @@ const Register = ({ onRegisterSuccess }) => {
                   role="status"
                   className="me-2"
                 />
-                登録中...
+                作成中...
               </>
             ) : (
               <>
                 <i className="bi bi-check-circle me-2"></i>
-                登録
+                アカウントを作成
               </>
             )}
           </Button>
