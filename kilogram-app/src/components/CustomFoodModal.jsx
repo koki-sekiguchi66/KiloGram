@@ -126,7 +126,7 @@ const CustomFoodModal = ({ show, onClose, onFoodSelected }) => {
                       <h6 className="mb-1">{food.name}</h6>
                       <div>
                         <Badge bg="light" text="dark" className="me-1">
-                          {food.calories_per_100g}kcal/100g
+                          {food.calories_per_100g}kcal/100
                         </Badge>
                         <small className="text-muted">
                           P:{food.protein_per_100g}g F:{food.fat_per_100g}g C:{food.carbs_per_100g}g

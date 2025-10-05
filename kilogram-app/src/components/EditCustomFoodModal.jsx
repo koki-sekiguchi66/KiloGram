@@ -71,7 +71,7 @@ const EditCustomFoodModal = ({ show, food, onClose, onFoodUpdated }) => {
             <Card.Header className="d-flex justify-content-between align-items-center">
               <Card.Title className="mb-0 h6">
                 <i className="bi bi-graph-up me-2"></i>
-                100gあたりの栄養成分
+                栄養成分
               </Card.Title>
               <Button
                 variant="outline-secondary"
