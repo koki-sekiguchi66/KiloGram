@@ -23,13 +23,11 @@ const Register = ({ onRegisterSuccess }) => {
     e.preventDefault();
     setMessage('');
 
-    // パスワード一致チェック（フロントエンド側でも確認）
     if (formData.password !== formData.confirm_password) {
       setMessage('パスワードが一致しません。');
       return;
     }
 
-    // パスワードの長さチェック
     if (formData.password.length < 8) {
       setMessage('パスワードは8文字以上で入力してください。');
       return;
@@ -38,18 +36,27 @@ const Register = ({ onRegisterSuccess }) => {
     setIsLoading(true);
 
     try {
-      const response = await apiClient.post('/register/', {
+      await apiClient.post('/register/', {
         username: formData.username,
         email: formData.email,
         password: formData.password,
         confirm_password: formData.confirm_password,
       });
-      setMessage('アカウントの作成に成功しました！');
-      onRegisterSuccess();
-    } catch (error) {
+
+      
+      const loginResponse = await apiClient.post('/login/', {
+        username: formData.username,
+        password: formData.password,
+      });
+
+      if (loginResponse.data.token) {
+        localStorage.setItem('token', loginResponse.data.token);
+        onRegisterSuccess(loginResponse.data.token);
+        }
+      }
+    catch (error) {
       console.error('Registration error:', error.response?.data);
       
-      // エラーメッセージの詳細表示
       if (error.response?.data) {
         const errors = error.response.data;
         if (errors.username) {

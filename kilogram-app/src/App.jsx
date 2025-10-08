@@ -20,8 +20,16 @@ function App() {
     setToken(newToken);
   };
 
-  const handleRegisterSuccess = () => {
-    setCurrentView('login');
+  // Register成功時の処理を修正
+  const handleRegisterSuccess = (tokenOrNull) => {
+    if (tokenOrNull) {
+      // トークンがある場合（自動ログイン成功）
+      localStorage.setItem('token', tokenOrNull);
+      setToken(tokenOrNull);
+    } else {
+      // トークンがない場合（自動ログイン失敗またはログイン画面へ）
+      setCurrentView('login');
+    }
   };
 
   const handleLogout = () => {

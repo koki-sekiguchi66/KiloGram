@@ -7,6 +7,7 @@ import WeightForm from './WeightForm';
 import WeightChart from './WeightChart';
 import CalorieChart from './CalorieChart';
 import EditMealModal from './EditMealModal';
+import InstallPWA from '../InstallPWA';
 
 const Dashboard = ({ handleLogout }) => {
   const [meals, setMeals] = useState([]);
