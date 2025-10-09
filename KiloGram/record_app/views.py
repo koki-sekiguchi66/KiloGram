@@ -2,8 +2,6 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, viewsets, generics, permissions
 from rest_framework.decorators import api_view, action, permission_classes
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 from datetime import date
 
 from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu
@@ -108,7 +106,7 @@ def search_foods(request):
         return Response({'foods': []})
 
     calculator = NutritionCalculatorService()
-    results = calculator.search_foods(query, request.user)
+    results = calculator.search_foods(query)
 
     return Response({'foods': results})
 

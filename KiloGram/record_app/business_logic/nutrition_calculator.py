@@ -1,18 +1,31 @@
-# record_app/business_logic/nutrition_calculator.py
 from django.db.models import Q
+from django.contrib.postgres.search import TrigramSimilarity
 from ..models import StandardFood, CustomFood
 
 class NutritionCalculatorService:
     
-    def search_foods(self, query, user=None):
-        """食品名で検索"""
-        results = []
+    def search_foods(self, query):
+        """食品名で検索"""        
+        if not query:
+            return []
         
-        # 標準食品から検索（部分一致）
-        standard_foods = StandardFood.objects.filter(
-            Q(name__icontains=query) | 
-            Q(category__icontains=query)
-        ).order_by('name')[:10]
+        results = []
+        keywords = query.split()
+        initial_candidates = (
+            StandardFood.objects.annotate(
+                similarity=TrigramSimilarity('name', query)
+            )
+            .filter(similarity__gt=0.08) 
+        )
+
+        final_query = Q()
+        for keyword in keywords:
+            final_query &= Q(name__icontains=keyword)
+        
+        standard_foods = (
+            initial_candidates.filter(final_query)
+            .order_by('-similarity') 
+        )[:10]
         
         for food in standard_foods:
             results.append({
@@ -23,20 +36,7 @@ class NutritionCalculatorService:
                 'nutrition': self._get_nutrition_per_100g(food)
             })
         
-        # ユーザーのカスタム食品から検索
-        if user:
-            custom_foods = CustomFood.objects.filter(
-                user=user,
-                name__icontains=query
-            ).order_by('name')[:5]
-            
-            for food in custom_foods:
-                results.append({
-                    'id': f'custom_{food.id}',
-                    'name': food.name,
-                    'type': 'custom',
-                    'nutrition': self._get_nutrition_per_100g(food)
-                })
+        
         
         return results
     

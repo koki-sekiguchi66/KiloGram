@@ -39,12 +39,16 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = ['username', 'email', 'password', 'confirm_password']
         extra_kwargs = {
-            'password': {'write_only': True}
+            'password': {'write_only': True, 'min_length': 8}
         }
     
     def validate(self, data):
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError("パスワードが一致しません。")
+        
+        if len(data['password']) < 8:
+            raise serializers.ValidationError("パスワードは8文字以上で入力してください。")
+        
         return data
 
     def create(self, validated_data):
