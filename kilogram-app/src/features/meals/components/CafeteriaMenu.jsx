@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Modal, Button, Card, Badge, Spinner, Alert, Tabs, Tab } from 'react-bootstrap';
-import apiClient from '../api/axiosConfig';
+import { mealApi } from '../api/mealApi';
 
 const CafeteriaMenu = ({ show, onClose, onMenuSelected }) => {
   const [menus, setMenus] = useState([]);
@@ -28,8 +28,8 @@ const CafeteriaMenu = ({ show, onClose, onMenuSelected }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await apiClient.get('/cafeteria/list/');
-      setMenus(response.data);
+      const data = await mealApi.getCafeteriaMenus();
+      setMenus(data);
     } catch (err) {
       setError('メニューの取得に失敗しました');
     } finally {

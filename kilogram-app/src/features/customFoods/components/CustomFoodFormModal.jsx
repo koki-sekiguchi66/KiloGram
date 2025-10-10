@@ -1,9 +1,23 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Modal, Form, Button, Alert, Row, Col, Card } from 'react-bootstrap';
-import apiClient from '../api/axiosConfig';
+import { customFoodApi } from '../api/customFoodApi';
 
-const EditCustomFoodModal = ({ show, food, onClose, onFoodUpdated }) => {
-  const [formData, setFormData] = useState(food);
+const CustomFoodFormModal = ({ show, onClose, onFoodCreated }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    calories_per_100g: 0,
+    protein_per_100g: 0,
+    fat_per_100g: 0,
+    carbs_per_100g: 0,
+    fiber_per_100g: 0,
+    sodium_per_100g: 0,
+    calcium_per_100g: 0,
+    iron_per_100g: 0,
+    vitamin_a_per_100g: 0,
+    vitamin_b1_per_100g: 0,
+    vitamin_b2_per_100g: 0,
+    vitamin_c_per_100g: 0,
+  });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showAdvancedNutrition, setShowAdvancedNutrition] = useState(false);
@@ -28,14 +42,14 @@ const EditCustomFoodModal = ({ show, food, onClose, onFoodUpdated }) => {
     }
 
     try {
-      const response = await apiClient.put(`/foods/custom/${food.id}/`, formData);
-      onFoodUpdated(response.data);
+      const response = await customFoodApi.createCustomFood(formData);
+      onFoodCreated(response);
       onClose();
     } catch (error) {
       if (error.response?.data?.name?.includes('already exists')) {
         setError('この食品名は既に登録されています。');
       } else {
-        setError('更新に失敗しました。');
+        setError('保存に失敗しました。');
       }
     } finally {
       setIsLoading(false);
@@ -46,8 +60,8 @@ const EditCustomFoodModal = ({ show, food, onClose, onFoodUpdated }) => {
     <Modal show={show} onHide={onClose} size="lg">
       <Modal.Header closeButton>
         <Modal.Title>
-          <i className="bi bi-pencil-square me-2"></i>
-          Myアイテムを編集
+          <i className="bi bi-plus-circle me-2"></i>
+          Myアイテムを新規作成
         </Modal.Title>
       </Modal.Header>
       <Modal.Body>
@@ -71,7 +85,7 @@ const EditCustomFoodModal = ({ show, food, onClose, onFoodUpdated }) => {
             <Card.Header className="d-flex justify-content-between align-items-center">
               <Card.Title className="mb-0 h6">
                 <i className="bi bi-graph-up me-2"></i>
-                栄養成分
+                栄養成分（100gあたり）
               </Card.Title>
               <Button
                 variant="outline-secondary"
@@ -240,12 +254,12 @@ const EditCustomFoodModal = ({ show, food, onClose, onFoodUpdated }) => {
           {isLoading ? (
             <>
               <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-              更新中...
+              保存中...
             </>
           ) : (
             <>
               <i className="bi bi-check-circle me-2"></i>
-              更新する
+              保存する
             </>
           )}
         </Button>
@@ -254,4 +268,4 @@ const EditCustomFoodModal = ({ show, food, onClose, onFoodUpdated }) => {
   );
 };
 
-export default EditCustomFoodModal;
+export default CustomFoodFormModal;

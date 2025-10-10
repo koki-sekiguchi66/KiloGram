@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Navbar, Nav, Button, 
-  Alert, Badge, Dropdown, Form } from 'react-bootstrap';
-import apiClient from '../api/axiosConfig'; 
-import MealForm from './MealForm';
-import WeightForm from './WeightForm';
-import WeightChart from './WeightChart';
-import CalorieChart from './CalorieChart';
-import EditMealModal from './EditMealModal';
-import InstallPWA from '../InstallPWA';
+import { Container, Row, Col, Card, Navbar, Nav, Button, Alert, Badge, Form } from 'react-bootstrap';
+
+import { MealForm, EditMealModal, CalorieChart } from '@/features/meals';
+import { WeightForm, WeightChart } from '@/features/weights';
+import { mealApi } from '@/features/meals/api/mealApi';
+import { weightApi } from '@/features/weights/api/weightApi';
 
 const Dashboard = ({ handleLogout }) => {
   const [meals, setMeals] = useState([]);
@@ -21,9 +18,9 @@ const Dashboard = ({ handleLogout }) => {
   useEffect(() => {
     const fetchMeals = async () => {
       try {
-        const response = await apiClient.get('/meals/');
-        setAllMeals(response.data);
-        filterMealsByDate(response.data, selectedDate);
+        const data = await mealApi.getMeals();
+        setAllMeals(data);
+        filterMealsByDate(data, selectedDate);
       } catch (error) {
         console.error('Failed to fetch meals', error);
         setMessage('食事記録の取得に失敗しました。');
@@ -32,8 +29,8 @@ const Dashboard = ({ handleLogout }) => {
 
     const fetchWeights = async () => {
       try {
-        const response = await apiClient.get('/weights/');
-        setWeights(response.data);
+        const data = await weightApi.getWeights();
+        setWeights(data);
       } catch (error) {
         console.error('Failed to fetch weights', error);
         setMessage('体重記録の取得に失敗しました。');
@@ -42,8 +39,8 @@ const Dashboard = ({ handleLogout }) => {
 
     const fetchDailySummary = async () => {
       try {
-        const response = await apiClient.get(`/nutrition/daily-summary/?date=${selectedDate}`);
-        setDailySummary(response.data.nutrition_summary);
+        const data = await mealApi.getDailySummary(selectedDate);
+        setDailySummary(data.nutrition_summary);
       } catch (error) {
         console.error('Failed to fetch daily summary', error);
       }
@@ -54,13 +51,11 @@ const Dashboard = ({ handleLogout }) => {
     fetchDailySummary();
   }, [selectedDate]);
 
-  // 選択した日付で食事記録をフィルタリング
   const filterMealsByDate = (mealList, date) => {
     const filteredMeals = mealList.filter(meal => meal.record_date === date);
     setMeals(filteredMeals.sort((a, b) => new Date(b.record_date) - new Date(a.record_date)));
   };
 
-  // 日付変更時の処理
   const handleDateChange = (newDate) => {
     setSelectedDate(newDate);
     filterMealsByDate(allMeals, newDate);
@@ -70,7 +65,6 @@ const Dashboard = ({ handleLogout }) => {
     const updatedAllMeals = [newMeal, ...allMeals].sort((a, b) => new Date(b.record_date) - new Date(a.record_date));
     setAllMeals(updatedAllMeals);
     
-    // 新しい食事記録が選択された日付と同じ場合のみ、表示リストを更新
     if (newMeal.record_date === selectedDate) {
       filterMealsByDate(updatedAllMeals, selectedDate);
       fetchDailySummary();
@@ -79,8 +73,8 @@ const Dashboard = ({ handleLogout }) => {
 
   const fetchDailySummary = async () => {
     try {
-      const response = await apiClient.get(`/nutrition/daily-summary/?date=${selectedDate}`);
-      setDailySummary(response.data.nutrition_summary);
+      const data = await mealApi.getDailySummary(selectedDate);
+      setDailySummary(data.nutrition_summary);
     } catch (error) {
       console.error('Failed to fetch daily summary', error);
     }
@@ -89,7 +83,7 @@ const Dashboard = ({ handleLogout }) => {
   const handleMealDelete = async (mealId) => {
     if (window.confirm('この記録を本当に削除しますか？')) {
       try {
-        await apiClient.delete(`/meals/${mealId}/`);
+        await mealApi.deleteMeal(mealId);
         const updatedAllMeals = allMeals.filter(meal => meal.id !== mealId);
         setAllMeals(updatedAllMeals);
         filterMealsByDate(updatedAllMeals, selectedDate);
@@ -161,17 +155,13 @@ const Dashboard = ({ handleLogout }) => {
     return variants[timing] || 'primary';
   };
 
-  // 今日の日付かどうかを判定
   const isToday = selectedDate === new Date().toISOString().split('T')[0];
 
   return (
     <>
-      {/* ナビゲーションバー */}
       <Navbar bg="primary" variant="dark" className="shadow-sm">
         <Container>
-          <Navbar.Brand>
-            KiloGram
-          </Navbar.Brand>
+          <Navbar.Brand>KiloGram</Navbar.Brand>
           <Nav>
             <Button 
               variant="outline-light"
@@ -185,7 +175,6 @@ const Dashboard = ({ handleLogout }) => {
       </Navbar>
 
       <Container className="my-4">
-        {/* 記録フォーム */}
         <Row className="mb-4">
           <Col md={6} className="mb-4">
             <Card className="h-100 shadow-sm">
@@ -215,7 +204,6 @@ const Dashboard = ({ handleLogout }) => {
           </Col>
         </Row>
 
-        {/* 日別栄養サマリー */}
         <Card className="mb-4 shadow-sm">
           <Card.Header className="bg-warning text-dark">
             <Card.Title className="mb-0">
@@ -293,7 +281,6 @@ const Dashboard = ({ handleLogout }) => {
           </Card.Body>
         </Card>
         
-        {/* 食事記録一覧 */}
         <Row className="mb-4">
           <Col xs={12}>
             <Card className="shadow-sm">
@@ -334,7 +321,6 @@ const Dashboard = ({ handleLogout }) => {
                               </Card.Subtitle>
                             </div>
                             
-                            {/* 編集・削除ボタンを修正 */}
                             <div className="d-flex gap-1 position-absolute top-0 end-0 p-2">
                               <Button
                                 size="sm"
@@ -403,14 +389,12 @@ const Dashboard = ({ handleLogout }) => {
           </Col>
         </Row>
 
-        {/* カロリー推移グラフ */}
         <Row className="mb-4">
           <Col xs={12}>
             <CalorieChart meals={allMeals} />
           </Col>
         </Row>
 
-        {/* 体重推移グラフ */}
         <Row>
           <Col xs={12}>
             <WeightChart weights={weights} />

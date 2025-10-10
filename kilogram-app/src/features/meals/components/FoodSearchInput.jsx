@@ -1,5 +1,6 @@
+// kilogram-app/src/features/meals/components/FoodSearchInput.jsx
 import { useState, useEffect, useRef } from 'react';
-import apiClient from '../api/axiosConfig';
+import { mealApi } from '../api/mealApi';
 
 const FoodSearchInput = ({ onFoodSelected }) => {
   const [query, setQuery] = useState('');
@@ -24,11 +25,11 @@ const FoodSearchInput = ({ onFoodSelected }) => {
       setLoading(true);
       setError('');
       try {
-        const response = await apiClient.get(`/foods/search/?q=${encodeURIComponent(query)}`);
-        setResults(response.data.foods || []);
+        const response = await mealApi.searchFoods(query);
+        setResults(response.foods || []);
         setShowResults(true);
         
-        if (response.data.foods && response.data.foods.length === 0) {
+        if (response.foods && response.foods.length === 0) {
           setError('該当する食品が見つかりませんでした。');
         }
       } catch (error) {
@@ -37,7 +38,7 @@ const FoodSearchInput = ({ onFoodSelected }) => {
         setError('検索中にエラーが発生しました。');
       }
       setLoading(false);
-    }, 300);
+    }, 100);
 
     return () => clearTimeout(timer);
   }, [query]);
@@ -59,11 +60,8 @@ const FoodSearchInput = ({ onFoodSelected }) => {
   // 栄養素計算
   const calculateNutrition = async (foodId, grams) => {
     try {
-      const response = await apiClient.post('/foods/calculate/', {
-        food_id: foodId,
-        amount: grams
-      });
-      return response.data.nutrition;
+      const response = await mealApi.calculateNutrition(foodId, grams);
+      return response.nutrition;
     } catch (error) {
       console.error('栄養素計算エラー:', error);
       setError('栄養素の計算に失敗しました。');

@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Form, Button, Card, Alert, Spinner, Row, Col, Collapse } from 'react-bootstrap';
 
 import FoodSearchInput from './FoodSearchInput';
-import CustomFoodModal from './CustomFoodModal';
 import CafeteriaMenu from './CafeteriaMenu';
 
-import apiClient from '../api/axiosConfig';
+import { CustomFoodModal } from '@/features/customFoods';
+
+import { mealApi } from '../api/mealApi';
+import { customFoodApi } from '@/features/customFoods/api/customFoodApi';
 
 const MealForm = ({ onMealCreated }) => {
   const [saveToCustom, setSaveToCustom] = useState(false); 
@@ -38,15 +40,14 @@ const MealForm = ({ onMealCreated }) => {
   useEffect(() => {
     const fetchMealTimings = async () => {
       try {
-        const response = await apiClient.get('/meal-timings/');
-        setMealTimings(response.data);
+        const data = await mealApi.getMealTimings();
+        setMealTimings(data);
       } catch (error) {
         console.error('食事タイミング取得エラー:', error);
       }
     };
     fetchMealTimings();
 
-    // 食品検索からの手動入力切り替えを監視
     const handleSwitchToManual = (event) => {
       const { name } = event.detail;
       setIsManualInput(true);
@@ -86,36 +87,6 @@ const MealForm = ({ onMealCreated }) => {
     setMealData({ ...mealData, [e.target.name]: e.target.value });
   };
 
-  // CustomFoodコンポーネントでのAPIリクエスト
-  const handleSaveAsCustomFood = async () => {
-    try {
-      await apiClient.post('/foods/custom/', {
-        name: mealData.meal_name,
-        calories_per_100g: mealData.calories,
-        protein_per_100g: mealData.protein,
-        fat_per_100g: mealData.fat,
-        carbs_per_100g: mealData.carbohydrates,
-        fiber_per_100g: mealData.dietary_fiber,
-        sodium_per_100g: mealData.sodium,
-        calcium_per_100g: mealData.calcium,
-        iron_per_100g: mealData.iron,
-        vitamin_a_per_100g: mealData.vitamin_a,
-        vitamin_b1_per_100g: mealData.vitamin_b1,
-        vitamin_b2_per_100g: mealData.vitamin_b2,
-        vitamin_c_per_100g: mealData.vitamin_c,
-      });
-      setMessage('Myアイテムとして保存しました');
-      setTimeout(() => setMessage(''), 3000);
-    } catch (error) {
-      console.error('カスタム食品保存エラー:', error);
-      if (error.response?.data?.name && error.response.data.name.includes('already exists')) {
-        setMessage('この名前の食品は既に登録されています。');
-      } else {
-        setMessage('保存に失敗しました。');
-      }
-    }
-  };
-
   const handleCustomFoodSelected = (customFood, amount = 100) => {
     const multiplier = amount / 100;
     setMealData({
@@ -138,7 +109,6 @@ const MealForm = ({ onMealCreated }) => {
     setIsManualInput(true); 
   };
 
-  // handleMenuSelectedを修正
   const handleMenuSelected = (menu) => {
     setMealData({
       ...mealData,
@@ -157,7 +127,7 @@ const MealForm = ({ onMealCreated }) => {
       vitamin_c: menu.vitamin_c,
     });
     setShowCafeteriaModal(false);
-    setIsManualInput(true); // 手動入力モードに切り替え
+    setIsManualInput(true);
   };
 
   const handleSubmit = async (e) => {
@@ -172,10 +142,8 @@ const MealForm = ({ onMealCreated }) => {
     }
 
     try {
-      // 食事を記録
-      const response = await apiClient.post('/meals/', mealData);
+      const response = await mealApi.createMeal(mealData);
       
-      // チェックボックスがオンの場合、Myアイテムとしても保存
       if (isManualInput && saveToCustom) {
         try {
           const customFoodData = {
@@ -193,7 +161,7 @@ const MealForm = ({ onMealCreated }) => {
             vitamin_b2_per_100g: mealData.vitamin_b2,
             vitamin_c_per_100g: mealData.vitamin_c,
           };
-          await apiClient.post('/foods/custom/', customFoodData);
+          await customFoodApi.createCustomFood(customFoodData);
           setMessage('食事を記録し、Myアイテムとして保存しました！');
         } catch (error) {
           if (error.response?.data?.name && error.response.data.name.includes('already exists')) {
@@ -206,7 +174,7 @@ const MealForm = ({ onMealCreated }) => {
         setMessage('食事を記録しました！');
       }
 
-      onMealCreated(response.data);
+      onMealCreated(response);
       
       const currentDate = mealData.record_date;
       const currentTiming = mealData.meal_timing;
@@ -231,7 +199,7 @@ const MealForm = ({ onMealCreated }) => {
       setSaveToCustom(false); 
       setIsManualInput(false);
       
-      setTimeout(() => setMessage(''), 3000);
+      setTimeout(() => setMessage(''), 100);
     } catch (error) {
       console.error('食事記録エラー:', error);
       setMessage('記録に失敗しました。');
@@ -358,7 +326,6 @@ const MealForm = ({ onMealCreated }) => {
               栄養情報 {!isManualInput && mealData.meal_name ? '(自動計算)' : '(手動入力)'}
             </Card.Title>
             <div className="d-flex gap-2">
-              
               <Button
                 variant="outline-secondary"
                 size="sm"
@@ -373,9 +340,7 @@ const MealForm = ({ onMealCreated }) => {
             {/* 基本栄養素 */}
             <Row>
               <Col md={6} className="mb-3">
-                <Form.Label>
-                  カロリー (kcal)
-                </Form.Label>
+                <Form.Label>カロリー (kcal)</Form.Label>
                 <Form.Control
                   type="number"
                   name="calories"
@@ -385,9 +350,7 @@ const MealForm = ({ onMealCreated }) => {
                 />
               </Col>
               <Col md={6} className="mb-3">
-                <Form.Label>
-                  タンパク質 (g)
-                </Form.Label>
+                <Form.Label>タンパク質 (g)</Form.Label>
                 <Form.Control
                   type="number"
                   name="protein"
@@ -397,9 +360,7 @@ const MealForm = ({ onMealCreated }) => {
                 />
               </Col>
               <Col md={6} className="mb-3">
-                <Form.Label>
-                  脂質 (g)
-                </Form.Label>
+                <Form.Label>脂質 (g)</Form.Label>
                 <Form.Control
                   type="number"
                   name="fat"
@@ -409,9 +370,7 @@ const MealForm = ({ onMealCreated }) => {
                 />
               </Col>
               <Col md={6} className="mb-3">
-                <Form.Label>
-                  炭水化物 (g)
-                </Form.Label>
+                <Form.Label>炭水化物 (g)</Form.Label>
                 <Form.Control
                   type="number"
                   name="carbohydrates"
@@ -422,7 +381,7 @@ const MealForm = ({ onMealCreated }) => {
               </Col>
             </Row>
 
-            {/* 詳細栄養素（折りたたみ式） */}
+            {/* 詳細栄養素 */}
             <Collapse in={showAdvancedNutrition}>
               <div>
                 <hr />
@@ -579,6 +538,7 @@ const MealForm = ({ onMealCreated }) => {
         />
       )}
 
+      {/* 食堂メニューモーダル */}
       {showCafeteriaModal && (
         <CafeteriaMenu
           show={showCafeteriaModal}

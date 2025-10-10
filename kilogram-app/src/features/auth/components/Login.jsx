@@ -1,6 +1,7 @@
+// kilogram-app/src/features/auth/components/Login.jsx
 import { useState } from 'react';
 import { Form, Button, Alert, Spinner } from 'react-bootstrap';
-import apiClient from '../api/axiosConfig';
+import { apiClient } from '@/lib/axios';
 
 const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({

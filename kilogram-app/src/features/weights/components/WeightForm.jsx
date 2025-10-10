@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Form, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
-import apiClient from '../api/axiosConfig'; 
+import { weightApi } from '../api/weightApi';
 
 const WeightForm = ({ onWeightCreated }) => {
   const [formData, setFormData] = useState({
@@ -35,9 +35,9 @@ const WeightForm = ({ onWeightCreated }) => {
     }
 
     try {
-      const response = await apiClient.post('/weights/', formData);
+      const response = await weightApi.createWeight(formData);
       setMessage('体重を記録しました！');
-      onWeightCreated(response.data); 
+      onWeightCreated(response); 
       
       const currentDate = formData.record_date;
       setFormData({
@@ -57,6 +57,7 @@ const WeightForm = ({ onWeightCreated }) => {
       setIsLoading(false);
     }
   };
+
 
   return (
     <Form onSubmit={handleSubmit}>

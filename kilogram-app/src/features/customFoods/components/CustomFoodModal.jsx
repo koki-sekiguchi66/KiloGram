@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal, Button, Badge, Form } from 'react-bootstrap';
-import apiClient from '../api/axiosConfig';
+import { customFoodApi } from '../api/customFoodApi';
 import CustomFoodFormModal from './CustomFoodFormModal';
 import EditCustomFoodModal from './EditCustomFoodModal';
 
@@ -21,13 +21,14 @@ const CustomFoodModal = ({ show, onClose, onFoodSelected }) => {
   }, [show]);
 
   const fetchCustomFoods = async () => {
+    setLoading(true);
+    setError('');
     try {
-      const response = await apiClient.get('/foods/custom/');
-      setCustomFoods(response.data);
-      setError('');
+      const data = await customFoodApi.getCustomFoods();
+      setCustomFoods(data || []);
     } catch (error) {
-      setError('Myアイテムの読み込みに失敗しました');
-      console.error('カスタム食品取得エラー:', error);
+      setError('Myアイテムの読み込みに失敗しました: ' + (error.message || ''));
+      setCustomFoods([]);
     } finally {
       setLoading(false);
     }
@@ -44,7 +45,7 @@ const CustomFoodModal = ({ show, onClose, onFoodSelected }) => {
     }
   };
 
-  const handleCreateFood = async (newFood) => {
+  const handleCreateFood = async () => {
     await fetchCustomFoods();
     setShowCreateModal(false);
   };
@@ -54,7 +55,7 @@ const CustomFoodModal = ({ show, onClose, onFoodSelected }) => {
     setShowEditModal(true);
   };
 
-  const handleUpdateFood = async (updatedFood) => {
+  const handleUpdateFood = async () => {
     await fetchCustomFoods();
     setShowEditModal(false);
     setEditingFood(null);
@@ -62,9 +63,10 @@ const CustomFoodModal = ({ show, onClose, onFoodSelected }) => {
 
   const handleDeleteFood = async (food) => {
     try {
-      await apiClient.delete(`/foods/custom/${food.id}/`);
+      await customFoodApi.deleteCustomFood(food.id);
       await fetchCustomFoods();
     } catch (error) {
+      console.error('削除エラー:', error);
       setError('削除に失敗しました');
     }
   };
@@ -126,7 +128,7 @@ const CustomFoodModal = ({ show, onClose, onFoodSelected }) => {
                       <h6 className="mb-1">{food.name}</h6>
                       <div>
                         <Badge bg="light" text="dark" className="me-1">
-                          {food.calories_per_100g}kcal/100
+                          {food.calories_per_100g}kcal/100g
                         </Badge>
                         <small className="text-muted">
                           P:{food.protein_per_100g}g F:{food.fat_per_100g}g C:{food.carbs_per_100g}g

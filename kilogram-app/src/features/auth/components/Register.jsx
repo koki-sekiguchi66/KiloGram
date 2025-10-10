@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Form, Button, Alert, Spinner } from 'react-bootstrap';
-import apiClient from '../api/axiosConfig';
+import { apiClient } from '@/lib/axios';
 
 const Register = ({ onRegisterSuccess }) => {
   const [formData, setFormData] = useState({
@@ -43,7 +43,6 @@ const Register = ({ onRegisterSuccess }) => {
         confirm_password: formData.confirm_password,
       });
 
-      
       const loginResponse = await apiClient.post('/login/', {
         username: formData.username,
         password: formData.password,
@@ -52,9 +51,8 @@ const Register = ({ onRegisterSuccess }) => {
       if (loginResponse.data.token) {
         localStorage.setItem('token', loginResponse.data.token);
         onRegisterSuccess(loginResponse.data.token);
-        }
       }
-    catch (error) {
+    } catch (error) {
       console.error('Registration error:', error.response?.data);
       
       if (error.response?.data) {
@@ -87,9 +85,7 @@ const Register = ({ onRegisterSuccess }) => {
       
       <Form onSubmit={handleSubmit}>
         <Form.Group className="mb-3">
-          <Form.Label>
-            ユーザー名
-          </Form.Label>
+          <Form.Label>ユーザー名</Form.Label>
           <Form.Control
             type="text"
             name="username"
@@ -102,9 +98,7 @@ const Register = ({ onRegisterSuccess }) => {
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>
-            メールアドレス
-          </Form.Label>
+          <Form.Label>メールアドレス</Form.Label>
           <Form.Control
             type="email"
             name="email"
@@ -116,9 +110,7 @@ const Register = ({ onRegisterSuccess }) => {
         </Form.Group>
 
         <Form.Group className="mb-3">
-          <Form.Label>
-            パスワード
-          </Form.Label>
+          <Form.Label>パスワード</Form.Label>
           <Form.Control
             type="password"
             name="password"
@@ -135,9 +127,7 @@ const Register = ({ onRegisterSuccess }) => {
         </Form.Group>
 
         <Form.Group className="mb-4">
-          <Form.Label>
-            パスワード（確認）
-          </Form.Label>
+          <Form.Label>パスワード（確認）</Form.Label>
           <Form.Control
             type="password"
             name="confirm_password"

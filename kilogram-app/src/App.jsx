@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
-import Register from './components/Register';
-import Login from './components/Login';
-import Dashboard from './components/Dashboard';
+import { Login, Register } from '@/features/auth';
+import { Dashboard } from '@/components/Layout';
 
 function App() {
   const [token, setToken] = useState(null);
@@ -20,14 +19,11 @@ function App() {
     setToken(newToken);
   };
 
-  // Register成功時の処理を修正
   const handleRegisterSuccess = (tokenOrNull) => {
     if (tokenOrNull) {
-      // トークンがある場合（自動ログイン成功）
       localStorage.setItem('token', tokenOrNull);
       setToken(tokenOrNull);
     } else {
-      // トークンがない場合（自動ログイン失敗またはログイン画面へ）
       setCurrentView('login');
     }
   };

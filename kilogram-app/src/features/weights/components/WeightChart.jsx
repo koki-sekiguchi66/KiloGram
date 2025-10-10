@@ -141,7 +141,7 @@ const WeightChart = ({ weights }) => {
           <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
             <div className="row g-2">
               {weights
-                .slice(0, 10) // 最新10件のみ表示
+                .slice(0, 10) // 最新10件
                 .map((weight) => (
                   <div key={weight.id} className="col-md-6">
                     <div className="p-2 bg-light rounded small">
