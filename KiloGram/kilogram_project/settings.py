@@ -85,8 +85,21 @@ WSGI_APPLICATION = 'kilogram_project.wsgi.application'
 
 DATABASE_URL = os.getenv('DATABASE_URL')
 
+
 DATABASES = {
-    'default': dj_database_url.config(default=DATABASE_URL)
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', 'kilogram_db'),
+        'USER': os.getenv('DB_USER', 'kilogram_user'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'koki1101'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
+        'CONN_MAX_AGE': 600,  
+        'OPTIONS': {
+            'connect_timeout': 10,
+            'options': '-c statement_timeout=30000'  
+        }
+    }
 }
 
 
