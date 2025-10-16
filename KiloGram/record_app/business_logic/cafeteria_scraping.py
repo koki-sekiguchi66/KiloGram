@@ -1,4 +1,3 @@
-# KiloGram/record_app/business_logic/cafeteria_scraping.py
 import requests
 from bs4 import BeautifulSoup
 import re
