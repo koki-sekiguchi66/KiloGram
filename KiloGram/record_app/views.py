@@ -237,9 +237,7 @@ def delete_custom_food(request, food_id):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def list_cafeteria_menus(request):
-    """食堂メニュー一覧取得（データがなければ即時実行、あれば毎週月曜8時更新）"""
-    if not CafeteriaMenu.objects.exists():
-        update_cafeteria_menus_task.delay()
+    """食堂メニュー一覧取得（毎週月曜8時更新）"""
 
     category = request.GET.get('category')
     menus = CafeteriaMenu.objects.all()
