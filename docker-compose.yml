@@ -1,19 +1,17 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16-alpine
     container_name: kilogram_db
     environment:
-      POSTGRES_DB: kilogram_db
-      POSTGRES_USER: kilogram_user
-      POSTGRES_PASSWORD: koki1101
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kilogram_user -d kilogram_db"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -37,30 +35,20 @@ services:
     build:
       context: ./KiloGram
       dockerfile: Dockerfile
-      target: development  # 開発ステージを指定
+      target: development
     container_name: kilogram_backend
     command: >
       sh -c "
         python manage.py migrate &&
-        python manage.py runserver 0.0.0.0:8000
+        python manage.py load_standard_foods /app/data/standard_foods.csv &&
+        python manage.py runserver 0.0.0.0:8000 
       "
     volumes:
       - ./KiloGram:/app
     ports:
       - "8000:8000"
-    environment:
-      - DEBUG=True
-      - SECRET_KEY=your-secret-key-here-change-in-production
-      - DB_NAME=kilogram_db
-      - DB_USER=kilogram_user
-      - DB_PASSWORD=koki1101
-      - DB_HOST=db
-      - DB_PORT=5432
-      - ALLOWED_HOST=localhost,127.0.0.1
-      - CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-      - CSRF_TRUSTED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - ./KiloGram/.env
     depends_on:
       db:
         condition: service_healthy
@@ -78,16 +66,8 @@ services:
     command: celery -A kilogram_project worker -l info
     volumes:
       - ./KiloGram:/app
-    environment:
-      - DEBUG=True
-      - SECRET_KEY=your-secret-key-here-change-in-production
-      - DB_NAME=kilogram_db
-      - DB_USER=kilogram_user
-      - DB_PASSWORD=koki1101
-      - DB_HOST=db
-      - DB_PORT=5432
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - ./KiloGram/.env
     depends_on:
       - backend
       - redis
@@ -103,16 +83,8 @@ services:
     command: celery -A kilogram_project beat -l info
     volumes:
       - ./KiloGram:/app
-    environment:
-      - DEBUG=True
-      - SECRET_KEY=your-secret-key-here-change-in-production
-      - DB_NAME=kilogram_db
-      - DB_USER=kilogram_user
-      - DB_PASSWORD=koki1101
-      - DB_HOST=db
-      - DB_PORT=5432
-      - CELERY_BROKER_URL=redis://redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - ./KiloGram/.env
     depends_on:
       - backend
       - redis
@@ -123,15 +95,13 @@ services:
     build:
       context: ./kilogram-app
       dockerfile: Dockerfile
-      target: development  # 開発ステージを指定
+      target: development
     container_name: kilogram_frontend
     volumes:
       - ./kilogram-app:/app
       - /app/node_modules
     ports:
       - "5173:5173"
-    environment:
-      - VITE_API_URL=http://localhost:8000/api
     depends_on:
       - backend
     networks:
