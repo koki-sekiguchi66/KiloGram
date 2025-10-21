@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-export const apiClient = axios.create({
-  baseURL: '/api/',
-});
+const baseURL = import.meta.env.VITE_API_BASE_URL || '/api/';
 
+export const apiClient = axios.create({
+  baseURL: baseURL,
+});
 
 apiClient.interceptors.request.use(
   (config) => {
@@ -14,6 +15,18 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// 401エラー時の処理
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    }
     return Promise.reject(error);
   }
 );

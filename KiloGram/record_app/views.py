@@ -4,6 +4,11 @@ from rest_framework import status, viewsets, generics, permissions
 from rest_framework.decorators import api_view, action, permission_classes
 from datetime import date
 
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import permission_classes
+from rest_framework.permissions import AllowAny
+
 from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu
 
 from .serializers import (MealRecordSerializer, UserRegistrationSerializer, WeightRecordSerializer,
@@ -247,3 +252,14 @@ def list_cafeteria_menus(request):
 
     serializer = CafeteriaMenuSerializer(menus, many=True)
     return Response(serializer.data)
+
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """本番環境用ヘルスチェックエンドポイント"""
+    return JsonResponse({
+        'status': 'healthy',
+        'service': 'kilogram-api'
+    })
