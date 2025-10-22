@@ -1,27 +1,26 @@
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1
+    PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y \
     postgresql-client \
     gcc \
-    python3-dev \
-    libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    pip install gunicorn
 
 COPY . .
 
-RUN mkdir -p /app/logs
-RUN python manage.py collectstatic --noinput || true
+RUN mkdir -p /app/logs && \
+    python manage.py collectstatic --noinput || true
+
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 
@@ -37,7 +36,5 @@ CMD ["gunicorn", "kilogram_project.wsgi:application", \
      "--workers", "2", \
      "--threads", "4", \
      "--worker-class", "gthread", \
-     "--worker-tmp-dir", "/dev/shm", \
      "--access-logfile", "-", \
-     "--error-logfile", "-", \
-     "--log-level", "info"]
+     "--error-logfile", "-"]
