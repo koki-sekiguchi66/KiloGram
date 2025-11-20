@@ -87,7 +87,7 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api/]
       },
       devOptions: {
-        enabled: true,
+        enabled: false,
         type: 'module'
       }
     })
@@ -102,6 +102,9 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0',
+    watch: {
+      usePolling: true,
+    },
     proxy: {
       '/api': {
         target: 'http://backend:8000',
