@@ -3,7 +3,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
 from .views import (
-    MealTimingChoicesView, MealRecordViewSet, WeightRecordViewSet, CustomFoodViewSet, UserRegistrationView,
+    MealTimingChoicesView, MealRecordViewSet, WeightRecordViewSet, CustomFoodViewSet, UserRegistrationView, CustomMenuViewSet,
     search_foods, food_suggestions, calculate_nutrition, daily_nutrition_summary, create_custom_food, 
     list_custom_foods, update_custom_food, delete_custom_food, list_cafeteria_menus, health_check
     )
@@ -12,6 +12,8 @@ router = DefaultRouter()
 router.register(r'meals', MealRecordViewSet, basename='meal')
 router.register(r'weights', WeightRecordViewSet, basename='weight')
 router.register(r'foods/custom', CustomFoodViewSet, basename='custom-food')
+router.register(r'meal-records', MealRecordViewSet, basename='mealrecord')
+router.register(r'custom-menus', CustomMenuViewSet, basename='custommenu')
 
 urlpatterns = [
     # 基本URL

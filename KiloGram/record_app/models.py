@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.postgres.indexes import GinIndex
+from django.core.validators import MinValueValidator
 from datetime import date
 
 
@@ -50,6 +51,77 @@ class MealRecord(models.Model):
             models.Index(fields=['-created_at'], name='meal_created_desc_idx'),
         ]
         ordering = ['-record_date', '-created_at']
+
+class MealRecordItem(models.Model):
+    """
+    食事記録に含まれる個別の食品アイテム
+    """
+    
+    ITEM_TYPE_CHOICES = [
+        ('standard', '標準食品'),
+        ('custom', 'カスタム食品'),
+        ('cafeteria', '食堂メニュー'),
+    ]
+    
+    meal_record = models.ForeignKey(
+        'MealRecord',
+        on_delete=models.CASCADE,
+        related_name='items',
+        verbose_name='食事記録'
+    )
+    
+
+    item_type = models.CharField(
+        max_length=20, 
+        choices=ITEM_TYPE_CHOICES, 
+        verbose_name='アイテム種別',
+        db_index=True
+    )
+    item_id = models.IntegerField(
+        verbose_name='アイテムID',
+        db_index=True
+    )
+    
+    # 保存時点の値を保持
+    item_name = models.CharField(
+        max_length=200, 
+        verbose_name='アイテム名'
+    )
+    amount_grams = models.FloatField(
+        validators=[MinValueValidator(0)],
+        verbose_name='分量(g)'
+    )
+    display_order = models.IntegerField(
+        default=0, 
+        verbose_name='表示順序'
+    )
+    
+    # 栄養素のスナップショット
+    calories = models.FloatField(default=0, verbose_name='エネルギー(kcal)')
+    protein = models.FloatField(default=0, verbose_name='タンパク質(g)')
+    fat = models.FloatField(default=0, verbose_name='脂質(g)')
+    carbohydrates = models.FloatField(default=0, verbose_name='炭水化物(g)')
+    dietary_fiber = models.FloatField(default=0, verbose_name='食物繊維(g)')
+    sodium = models.FloatField(default=0, verbose_name='食塩相当量(g)')
+    calcium = models.FloatField(default=0, verbose_name='カルシウム(mg)')
+    iron = models.FloatField(default=0, verbose_name='鉄(mg)')
+    vitamin_a = models.FloatField(default=0, verbose_name='ビタミンA(μg)')
+    vitamin_b1 = models.FloatField(default=0, verbose_name='ビタミンB1(mg)')
+    vitamin_b2 = models.FloatField(default=0, verbose_name='ビタミンB2(mg)')
+    vitamin_c = models.FloatField(default=0, verbose_name='ビタミンC(mg)')
+    
+    class Meta:
+        verbose_name = '食事記録アイテム'
+        verbose_name_plural = '食事記録アイテム'
+        ordering = ['display_order', 'id']
+        indexes = [
+            models.Index(fields=['meal_record', 'display_order'], name='mealitem_record_order_idx'),
+            models.Index(fields=['item_type', 'item_id'], name='mealitem_polymorphic_idx'),
+        ]
+    
+    def __str__(self):
+        return f"{self.item_name} ({self.amount_grams}g)"
+
 
 
 class WeightRecord(models.Model):
@@ -189,9 +261,116 @@ class CafeteriaMenu(models.Model):
             models.Index(fields=['category'], name='cafeteria_category_idx'),
             models.Index(fields=['category', 'name'], name='cafeteria_cat_name_idx'),
             models.Index(fields=['updated_at'], name='cafeteria_updated_idx'),
-            # 名前での検索用GINインデックス（オプション - 検索が遅い場合に有効化）
-            # GinIndex(fields=['name'], name='cafeteria_name_gin_idx', opclasses=['gin_trgm_ops']),
         ]
     
     def __str__(self):
         return f"{self.get_category_display()} - {self.name}"
+
+class CustomMenu(models.Model):
+    """ユーザーが追加した再利用可能なメニューテンプレート"""
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='ユーザー')
+    name = models.CharField(max_length=100, verbose_name='メニュー名', db_index=True)
+    description = models.TextField(blank=True, verbose_name='説明')
+    
+    # 合計の栄養素を事前計算し更新
+    total_calories = models.FloatField(default=0, verbose_name='合計カロリー(kcal)')
+    total_protein = models.FloatField(default=0, verbose_name='合計タンパク質(g)')
+    total_fat = models.FloatField(default=0, verbose_name='合計脂質(g)')
+    total_carbohydrates = models.FloatField(default=0, verbose_name='合計炭水化物(g)')
+    total_dietary_fiber = models.FloatField(default=0, verbose_name='合計食物繊維(g)')
+    total_sodium = models.FloatField(default=0, verbose_name='合計ナトリウム(mg)')
+    total_calcium = models.FloatField(default=0, verbose_name='合計カルシウム(mg)')
+    total_iron = models.FloatField(default=0, verbose_name='合計鉄分(mg)')
+    total_vitamin_a = models.FloatField(default=0, verbose_name='合計ビタミンA(μg)')
+    total_vitamin_b1 = models.FloatField(default=0, verbose_name='合計ビタミンB1(mg)')
+    total_vitamin_b2 = models.FloatField(default=0, verbose_name='合計ビタミンB2(mg)')
+    total_vitamin_c = models.FloatField(default=0, verbose_name='合計ビタミンC(mg)')
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='作成日時')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新日時')
+    
+    class Meta:
+        verbose_name = 'Myメニュー'
+        verbose_name_plural = 'Myメニュー'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'name'], name='custommenu_user_name_idx'),
+            models.Index(fields=['user', '-created_at'], name='custommenu_user_created_idx'),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.name}"
+    
+    def calculate_totals(self):
+        """
+        メニューアイテムから合計栄養素を計算
+        集計クエリを1回のみ実行
+        結果をモデルフィールドにキャッシュ
+        """
+        from django.db.models import Sum
+        
+        totals = self.items.aggregate(
+            total_calories=Sum('calories'),
+            total_protein=Sum('protein'),
+            total_fat=Sum('fat'),
+            total_carbohydrates=Sum('carbohydrates'),
+            total_dietary_fiber=Sum('dietary_fiber'),
+            total_sodium=Sum('sodium'),
+            total_calcium=Sum('calcium'),
+            total_iron=Sum('iron'),
+            total_vitamin_a=Sum('vitamin_a'),
+            total_vitamin_b1=Sum('vitamin_b1'),
+            total_vitamin_b2=Sum('vitamin_b2'),
+            total_vitamin_c=Sum('vitamin_c'),
+        )
+        
+        # None値を0に変換して設定
+        for key, value in totals.items():
+            setattr(self, key, value or 0)
+
+
+class CustomMenuItem(models.Model):
+    """Myメニューに含まれる個別の食品"""
+    
+    ITEM_TYPE_CHOICES = [
+        ('standard', '標準食品'),
+        ('custom', 'Myアイテム'),
+        ('cafeteria', '食堂メニュー'),
+    ]
+    
+    custom_menu = models.ForeignKey(
+        CustomMenu, 
+        on_delete=models.CASCADE, 
+        related_name='items',
+        verbose_name='Myメニュー'
+    )
+    item_type = models.CharField(max_length=20, choices=ITEM_TYPE_CHOICES, verbose_name='アイテム種別')
+    item_id = models.IntegerField(verbose_name='アイテムID')
+    item_name = models.CharField(max_length=200, verbose_name='アイテム名')
+    amount_grams = models.FloatField(verbose_name='分量(g)')
+    display_order = models.IntegerField(default=0, verbose_name='表示順序')
+    
+    calories = models.FloatField(verbose_name='カロリー(kcal)')
+    protein = models.FloatField(verbose_name='タンパク質(g)')
+    fat = models.FloatField(verbose_name='脂質(g)')
+    carbohydrates = models.FloatField(verbose_name='炭水化物(g)')
+    dietary_fiber = models.FloatField(default=0, verbose_name='食物繊維(g)')
+    sodium = models.FloatField(default=0, verbose_name='ナトリウム(mg)')
+    calcium = models.FloatField(default=0, verbose_name='カルシウム(mg)')
+    iron = models.FloatField(default=0, verbose_name='鉄分(mg)')
+    vitamin_a = models.FloatField(default=0, verbose_name='ビタミンA(μg)')
+    vitamin_b1 = models.FloatField(default=0, verbose_name='ビタミンB1(mg)')
+    vitamin_b2 = models.FloatField(default=0, verbose_name='ビタミンB2(mg)')
+    vitamin_c = models.FloatField(default=0, verbose_name='ビタミンC(mg)')
+    
+    class Meta:
+        verbose_name = 'メニューアイテム'
+        verbose_name_plural = 'メニューアイテム'
+        ordering = ['display_order']
+        indexes = [
+            models.Index(fields=['custom_menu', 'display_order'], name='custommenuitem_menu_order_idx'),
+        ]
+    
+    def __str__(self):
+        return f"{self.custom_menu.name} - {self.item_name}"

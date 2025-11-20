@@ -1,18 +1,20 @@
 from rest_framework.views import APIView
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status, viewsets, generics, permissions
 from rest_framework.decorators import api_view, action, permission_classes
 from datetime import date
-
+from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny
 
-from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu
+from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu, MealRecordItem, CustomMenu, CustomMenuItem
 
 from .serializers import (MealRecordSerializer, UserRegistrationSerializer, WeightRecordSerializer,
-                        CustomFoodSerializer, CafeteriaMenuSerializer
+                        CustomFoodSerializer, CafeteriaMenuSerializer, MealRecordSerializer, MealRecordListSerializer,
+                        CustomMenuSerializer, CustomMenuListSerializer,
                         )
 
 from .business_logic.nutrition_calculator import NutritionCalculatorService
@@ -263,3 +265,148 @@ def health_check(request):
         'status': 'healthy',
         'service': 'kilogram-api'
     })
+
+class MealRecordViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """
+        ユーザー自身の食事記録のみ取得
+        """
+        return MealRecord.objects.filter(
+            user=self.request.user
+        ).prefetch_related('items').order_by('-record_date', '-created_at')
+    
+    def get_serializer_class(self):
+        """
+        アクションに応じてシリアライザーを切り替え
+        list: items詳細なし
+        retrieve/create/update: 完全版（items含む）
+        """
+        if self.action == 'list':
+            return MealRecordListSerializer
+        return MealRecordSerializer
+    
+    @transaction.atomic
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+    
+    @transaction.atomic
+    def perform_update(self, serializer):
+        serializer.save()
+
+class CustomMenuViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """
+        ユーザー自身のカスタムメニューのみ取得
+        """
+        return CustomMenu.objects.filter(
+            user=self.request.user
+        ).prefetch_related('items').order_by('-updated_at')
+    
+    def get_serializer_class(self):
+        """
+        アクションに応じてシリアライザーを切り替え
+        list:（items詳細なし）
+        retrieve/create/update: 完全版（items含む）
+        """
+        if self.action == 'list':
+            return CustomMenuListSerializer
+        return CustomMenuSerializer
+    
+    @transaction.atomic
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+    
+    @transaction.atomic
+    def perform_update(self, serializer):
+        serializer.save()
+    
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def create_meal_from_menu(self, request, pk=None):
+        """
+        カスタムメニューから食事記録を作成
+        カスタムメニューを取得しmultiplierで栄養素を調整、そしてMealRecordとMealRecordItemを作成
+        """
+        custom_menu = self.get_object()
+        
+        record_date = request.data.get('record_date', date.today())
+        meal_timing = request.data.get('meal_timing', 'breakfast')
+        multiplier = float(request.data.get('multiplier', 1.0))
+        
+        if multiplier <= 0:
+            return Response(
+                {'error': '倍率は正の数でなければなりません'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        meal_record = MealRecord.objects.create(
+            user=request.user,
+            record_date=record_date,
+            meal_timing=meal_timing,
+            meal_name=custom_menu.name,
+            calories=custom_menu.total_calories * multiplier,
+            protein=custom_menu.total_protein * multiplier,
+            fat=custom_menu.total_fat * multiplier,
+            carbohydrates=custom_menu.total_carbohydrates * multiplier,
+            dietary_fiber=custom_menu.total_dietary_fiber * multiplier,
+            sodium=custom_menu.total_sodium * multiplier,
+            calcium=custom_menu.total_calcium * multiplier,
+            iron=custom_menu.total_iron * multiplier,
+            vitamin_a=custom_menu.total_vitamin_a * multiplier,
+            vitamin_b1=custom_menu.total_vitamin_b1 * multiplier,
+            vitamin_b2=custom_menu.total_vitamin_b2 * multiplier,
+            vitamin_c=custom_menu.total_vitamin_c * multiplier,
+        )
+        
+        menu_items = custom_menu.items.all()
+        MealRecordItem.objects.bulk_create([
+            MealRecordItem(
+                meal_record=meal_record,
+                item_type=item.item_type,
+                item_id=item.item_id,
+                item_name=item.item_name,
+                amount_grams=item.amount_grams * multiplier,
+                display_order=item.display_order,
+                calories=item.calories * multiplier,
+                protein=item.protein * multiplier,
+                fat=item.fat * multiplier,
+                carbohydrates=item.carbohydrates * multiplier,
+                dietary_fiber=item.dietary_fiber * multiplier,
+                sodium=item.sodium * multiplier,
+                calcium=item.calcium * multiplier,
+                iron=item.iron * multiplier,
+                vitamin_a=item.vitamin_a * multiplier,
+                vitamin_b1=item.vitamin_b1 * multiplier,
+                vitamin_b2=item.vitamin_b2 * multiplier,
+                vitamin_c=item.vitamin_c * multiplier,
+            )
+            for item in menu_items
+        ])
+        
+        serializer = MealRecordSerializer(meal_record)
+        return Response(
+            {
+                'message': '食事記録を作成しました',
+                'meal_record': serializer.data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        query = request.query_params.get('q', '')
+        
+        if not query:
+            return Response(
+                {'error': '検索キーワードを指定してください'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        menus = self.get_queryset().filter(name__icontains=query)
+        serializer = self.get_serializer(menus, many=True)
+        
+        return Response(serializer.data)
