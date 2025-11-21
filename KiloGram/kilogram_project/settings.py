@@ -1,4 +1,5 @@
 import os
+import socket
 from pathlib import Path
 import dotenv
 import dj_database_url
@@ -82,28 +83,52 @@ TEMPLATES = [
 WSGI_APPLICATION = 'kilogram_project.wsgi.application'
 
 
-if os.getenv('DATABASE_URL'):
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
-            conn_max_age=600,
-            conn_health_checks=True,
-        )
-    }
-else:
+# DATABASES 設定（既存の DATABASES をこれに置き換えてください）
+POSTGRES_DB = os.environ.get('POSTGRES_DB')
+POSTGRES_USER = os.environ.get('POSTGRES_USER')
+POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
+DB_HOST = os.environ.get('DB_HOST', 'db')
+DB_PORT = os.environ.get('DB_PORT', '5432')
+
+def resolve_db_host(preferred_host):
+    """
+    Docker 開発時は preferred_host='db' を使う想定。
+    起動環境で 'db' が解決できなければローカル用ホストにフォールバックする。
+    環境変数 DB_HOST_LOCAL があればそれを優先。
+    """
+    # 明示的なローカル上書きがあればそれを使う
+    local_override = os.environ.get('DB_HOST_LOCAL')
+    if local_override:
+        return local_override
+
+    try:
+        # ホスト名が解決できるか確認
+        socket.gethostbyname(preferred_host)
+        return preferred_host
+    except OSError:
+        # 解決できなければローカルの Postgres を使う（デフォルト localhost）
+        return 'localhost'
+
+# Postgres 情報があれば Postgres を使う（.env にPOSTGRES_*がある場合）
+if POSTGRES_DB:
+    db_host = resolve_db_host(DB_HOST)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('POSTGRES_DB'),
-            'USER': os.getenv('POSTGRES_USER'),
-            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-            'HOST': os.getenv('DB_HOST'),
-            'PORT': os.getenv('DB_PORT'),
-            'CONN_MAX_AGE': 600,
-            'OPTIONS': {
-                'connect_timeout': 10,
-                'options': '-c statement_timeout=30000'
-            }
+            'NAME': POSTGRES_DB,
+            'USER': POSTGRES_USER or '',
+            'PASSWORD': POSTGRES_PASSWORD or '',
+            'HOST': db_host,
+            'PORT': DB_PORT,
+        }
+    }
+else:
+    # フォールバック：開発時にPostgresが未設定なら SQLite を使う
+    BASE_DIR = Path(__file__).resolve().parent.parent
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
 

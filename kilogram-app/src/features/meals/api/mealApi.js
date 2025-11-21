@@ -4,7 +4,6 @@ import { apiClient } from '@/lib/axios';
  * 食事記録API クライアント
  */
 export const mealApi = {
-  // --- 既存のCRUDメソッド ---
 
   getMeals: async (params = {}) => {
     const response = await apiClient.get('/meal-records/', { params });
@@ -50,7 +49,10 @@ export const mealApi = {
     return response.data;
   },
 
-  // --- その他（ここを追加） ---
+  getCustomFoods: async () => {
+    const response = await apiClient.get('/foods/custom');
+    return response.data;
+  },
 
   /**
    * 食堂メニュー一覧の取得

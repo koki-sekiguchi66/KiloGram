@@ -1,47 +1,30 @@
-import { useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
 import { mealApi } from '../api/mealApi';
 import { customMenuApi } from '@/features/customMenus/api/customMenuApi';
-import { toast } from 'react-hot-toast';
+import { toast } from 'react-hot-toast'; // トースト通知用（なければalert等に置換可）
 
-/**
- * メニュービルダー カスタムフック
- * 
- * 設計原則:
- * - ローカル状態でプレビューを管理（DBアクセスなし）
- * - submitボタン押下時のみDBに保存
- * - 明確な責務分離（状態管理 / API通信 / UI更新）
- * 
- * 状態管理の流れ:
- * 1. アイテム追加 → menuItems配列に追加（メモリ上）
- * 2. リアルタイムプレビュー → menuItemsを表示
- * 3. submit → MealRecord + (オプション)CustomMenu を保存
- */
-export const useMenuBuilder = () => {
-  const navigate = useNavigate();
-  
-  // メニューアイテム（ローカル状態）
-  const [menuItems, setMenuItems] = useState([]);
-  
-  // フォーム入力
+export const useMenuBuilder = (onMealCreated) => {
+  // 基本設定
   const [recordDate, setRecordDate] = useState(new Date().toISOString().split('T')[0]);
   const [mealTiming, setMealTiming] = useState('breakfast');
   const [activeInputMethod, setActiveInputMethod] = useState('search');
+
+  // メニューの内容（カート）
+  const [menuItems, setMenuItems] = useState([]);
   
-  // メニュー保存オプション
+  // 保存オプション
   const [saveAsMenu, setSaveAsMenu] = useState(false);
   const [menuName, setMenuName] = useState('');
   const [menuDescription, setMenuDescription] = useState('');
-  
-  // ローディング状態
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // 栄養素の合計計算（メモ化）
-  
-  
+
+  // 合計栄養素の計算
   const totalNutrition = useMemo(() => {
-    return menuItems.reduce(
-      (acc, item) => ({
+    return menuItems.reduce((acc, item) => {
+      const multiplier = item.amount_grams / 100; // 基本は100gあたりのデータと仮定、またはアイテム自体が計算済みならそのまま
+      
+      // アイテムが既に計算済みの栄養素を持っている場合（推奨）
+      return {
         calories: acc.calories + (item.calories || 0),
         protein: acc.protein + (item.protein || 0),
         fat: acc.fat + (item.fat || 0),
@@ -54,235 +37,159 @@ export const useMenuBuilder = () => {
         vitamin_b1: acc.vitamin_b1 + (item.vitamin_b1 || 0),
         vitamin_b2: acc.vitamin_b2 + (item.vitamin_b2 || 0),
         vitamin_c: acc.vitamin_c + (item.vitamin_c || 0),
-      }),
-      {
-        calories: 0,
-        protein: 0,
-        fat: 0,
-        carbohydrates: 0,
-        dietary_fiber: 0,
-        sodium: 0,
-        calcium: 0,
-        iron: 0,
-        vitamin_a: 0,
-        vitamin_b1: 0,
-        vitamin_b2: 0,
-        vitamin_c: 0,
-      }
-    );
-  }, [menuItems]);
-  
-  
-  /**
-   * アイテムを追加
-   * @param {Object} item - 追加するアイテム
-   */
-  const addItem = useCallback((item) => {
-    // 一時IDを付与（フロントエンド用）
-    const itemWithTempId = {
-      ...item,
-      tempId: `temp_${Date.now()}_${Math.random()}`,
-      display_order: menuItems.length,
-    };
-    
-    setMenuItems(prev => [...prev, itemWithTempId]);
-    toast.success(`${item.item_name}を追加しました`);
-  }, [menuItems.length]);
-  
-  /**
-   * アイテムの分量を更新
-   * @param {number} index - アイテムのインデックス
-   * @param {number} newAmount - 新しい分量
-   */
-  const updateItemAmount = useCallback((index, newAmount) => {
-    setMenuItems(prev => {
-      const updated = [...prev];
-      const item = updated[index];
-      const ratio = newAmount / item.amount_grams;
-      
-      // 分量と栄養素を比例計算
-      updated[index] = {
-        ...item,
-        amount_grams: newAmount,
-        calories: item.calories * ratio,
-        protein: item.protein * ratio,
-        fat: item.fat * ratio,
-        carbohydrates: item.carbohydrates * ratio,
-        dietary_fiber: item.dietary_fiber * ratio,
-        sodium: item.sodium * ratio,
-        calcium: item.calcium * ratio,
-        iron: item.iron * ratio,
-        vitamin_a: item.vitamin_a * ratio,
-        vitamin_b1: item.vitamin_b1 * ratio,
-        vitamin_b2: item.vitamin_b2 * ratio,
-        vitamin_c: item.vitamin_c * ratio,
       };
-      
-      return updated;
+    }, {
+      calories: 0, protein: 0, fat: 0, carbohydrates: 0,
+      dietary_fiber: 0, sodium: 0, calcium: 0, iron: 0,
+      vitamin_a: 0, vitamin_b1: 0, vitamin_b2: 0, vitamin_c: 0,
     });
-  }, []);
-  
-  /**
-   * アイテムを削除
-   * @param {number} index - 削除するアイテムのインデックス
-   */
-  const removeItem = useCallback((index) => {
-    setMenuItems(prev => {
-      const updated = prev.filter((_, i) => i !== index);
-      // display_orderを再設定
-      return updated.map((item, idx) => ({
-        ...item,
-        display_order: idx,
-      }));
-    });
-    toast.success('アイテムを削除しました');
-  }, []);
-  
-  /**
-   * アイテムの順序を変更（ドラッグ&ドロップ用）
-   * @param {number} fromIndex - 移動元インデックス
-   * @param {number} toIndex - 移動先インデックス
-   */
-  const reorderItems = useCallback((fromIndex, toIndex) => {
-    setMenuItems(prev => {
-      const updated = [...prev];
-      const [moved] = updated.splice(fromIndex, 1);
-      updated.splice(toIndex, 0, moved);
-      
-      // display_orderを再設定
-      return updated.map((item, idx) => ({
-        ...item,
-        display_order: idx,
-      }));
-    });
-  }, []);
-  
-  /**
-   * すべてのアイテムをクリア
-   */
-  const handleClearMenu = useCallback(() => {
-    if (window.confirm('すべてのアイテムをクリアしますか?')) {
-      setMenuItems([]);
-      toast.success('メニューをクリアしました');
-    }
-  }, []);
-  
-  /**
-   * カスタムメニューから全アイテムを読み込み
-   * @param {Object} customMenu - カスタムメニューオブジェクト
-   */
-  const loadFromCustomMenu = useCallback((customMenu) => {
-    const items = customMenu.items.map((item, index) => ({
+  }, [menuItems]);
+
+  // アイテム追加
+  const addMenuItem = (item) => {
+    const newItem = {
       ...item,
-      tempId: `temp_${Date.now()}_${index}`,
-      display_order: index,
+      tempId: Date.now() + Math.random(), // フロントエンド用の一時ID
+      display_order: menuItems.length + 1,
+    };
+    setMenuItems([...menuItems, newItem]);
+    toast.success(`${item.item_name}を追加しました`);
+  };
+
+  // アイテム削除
+  const removeMenuItem = (tempId) => {
+    setMenuItems(menuItems.filter(item => item.tempId !== tempId));
+  };
+
+  // Myメニュー読み込み
+  const loadFromCustomMenu = (menuDetail) => {
+    const newItems = menuDetail.items.map(item => ({
+      ...item,
+      tempId: Date.now() + Math.random() + item.id,
+      // 既存の栄養素データを使用
     }));
-    
-    setMenuItems(items);
-    setMenuName(customMenu.name);
-    setMenuDescription(customMenu.description || '');
-    toast.success(`${customMenu.name}を読み込みました`);
-  }, []);
-  
-  /**
-   * フォームを送信（食事記録 + オプションでカスタムメニュー）
-   */
-  const handleSubmit = useCallback(async () => {
-    // バリデーション
+    setMenuItems([...menuItems, ...newItems]);
+    toast.success(`メニュー「${menuDetail.name}」を読み込みました`);
+  };
+
+  // メニュークリア
+  const handleClearMenu = () => {
+    if (window.confirm('現在のメニューをクリアしますか？')) {
+      setMenuItems([]);
+      setMenuName('');
+      setMenuDescription('');
+      setSaveAsMenu(false);
+    }
+  };
+
+  // 送信処理
+  const handleSubmit = async () => {
     if (menuItems.length === 0) {
-      toast.error('少なくとも1つのアイテムを追加してください');
+      toast.error('アイテムを追加してください');
       return;
     }
-    
     if (saveAsMenu && !menuName.trim()) {
-      toast.error('メニュー名を入力してください');
+      toast.error('Myメニューとして保存する場合は名前が必要です');
       return;
     }
-    
+
     setIsSubmitting(true);
-    
     try {
-      // アイテムデータを準備（tempIdを除外）
-      const itemsData = menuItems.map(({ tempId, ...item }) => item);
-      
-      // 食事記録を作成
-      const mealData = {
+      // 1. 食事記録の作成
+      // 食事名は、Myメニュー名が指定されていればそれ、なければ代表アイテム名などから生成
+      const finalMealName = saveAsMenu ? menuName : (menuItems[0].item_name + (menuItems.length > 1 ? ' 他' : ''));
+
+      const mealRecordData = {
         record_date: recordDate,
         meal_timing: mealTiming,
-        meal_name: saveAsMenu ? menuName : `食事記録 ${recordDate}`,
-        items: itemsData,
+        meal_name: finalMealName,
+        // 合計栄養素を展開
         ...totalNutrition,
+        // アイテムリスト
+        items: menuItems.map((item, index) => ({
+          item_type: item.item_type || 'standard', // デフォルト
+          item_id: item.item_id || 0, // IDがない場合（手動など）は0や適切な処理
+          item_name: item.item_name,
+          amount_grams: item.amount_grams,
+          display_order: index + 1,
+          // 栄養素スナップショット
+          calories: item.calories,
+          protein: item.protein,
+          fat: item.fat,
+          carbohydrates: item.carbohydrates,
+          dietary_fiber: item.dietary_fiber,
+          sodium: item.sodium,
+          calcium: item.calcium,
+          iron: item.iron,
+          vitamin_a: item.vitamin_a,
+          vitamin_b1: item.vitamin_b1,
+          vitamin_b2: item.vitamin_b2,
+          vitamin_c: item.vitamin_c,
+        }))
       };
-      
-      await mealApi.createMeal(mealData);
-      toast.success('食事記録を作成しました');
-      
-      // カスタムメニューとして保存（オプション）
+
+      const createdMeal = await mealApi.createMeal(mealRecordData);
+
+      // 2. Myメニューとして保存する場合
       if (saveAsMenu) {
-        const menuData = {
+        const customMenuData = {
           name: menuName,
           description: menuDescription,
-          items: itemsData,
+          items: menuItems.map((item, index) => ({
+            item_type: item.item_type || 'standard',
+            item_id: item.item_id || 0,
+            item_name: item.item_name,
+            amount_grams: item.amount_grams,
+            display_order: index + 1,
+            // 栄養素
+            calories: item.calories,
+            protein: item.protein,
+            fat: item.fat,
+            carbohydrates: item.carbohydrates,
+            dietary_fiber: item.dietary_fiber,
+            sodium: item.sodium,
+            calcium: item.calcium,
+            iron: item.iron,
+            vitamin_a: item.vitamin_a,
+            vitamin_b1: item.vitamin_b1,
+            vitamin_b2: item.vitamin_b2,
+            vitamin_c: item.vitamin_c,
+          }))
         };
-        
-        await customMenuApi.createMenu(menuData);
-        toast.success('カスタムメニューも保存しました');
+        await customMenuApi.createMenu(customMenuData);
+        toast.success('Myメニューとしても保存しました');
       }
-  
+
+      toast.success('食事を記録しました！');
+      
+      // リセット
       setMenuItems([]);
       setMenuName('');
       setMenuDescription('');
       setSaveAsMenu(false);
       
-      navigate('/meals');
-      
+      if (onMealCreated) onMealCreated(createdMeal);
+
     } catch (error) {
-      console.error('保存エラー:', error);
-      toast.error('保存に失敗しました');
+      console.error('登録エラー:', error);
+      toast.error('登録に失敗しました。入力内容を確認してください。');
     } finally {
       setIsSubmitting(false);
     }
-  }, [
-    menuItems,
-    saveAsMenu,
-    menuName,
-    menuDescription,
-    recordDate,
-    mealTiming,
-    totalNutrition,
-    navigate,
-  ]);
-  
-  
+  };
+
   return {
-    // 状態
-    menuItems,
-    recordDate,
-    mealTiming,
-    activeInputMethod,
-    saveAsMenu,
-    menuName,
-    menuDescription,
+    recordDate, setRecordDate,
+    mealTiming, setMealTiming,
+    activeInputMethod, setActiveInputMethod,
+    menuItems, addMenuItem, removeMenuItem,
     totalNutrition,
+    saveAsMenu, setSaveAsMenu,
+    menuName, setMenuName,
+    menuDescription, setMenuDescription,
     isSubmitting,
-    
-    // セッター
-    setRecordDate,
-    setMealTiming,
-    setActiveInputMethod,
-    setSaveAsMenu,
-    setMenuName,
-    setMenuDescription,
-    
-    // アイテム操作
-    addItem,
-    updateItemAmount,
-    removeItem,
-    reorderItems,
-    handleClearMenu,
-    loadFromCustomMenu,
-    
-    // 保存
     handleSubmit,
+    handleClearMenu,
+    loadFromCustomMenu
   };
 };

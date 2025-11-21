@@ -1,49 +1,32 @@
-// src/features/meals/components/NutritionSummary.jsx
-
 import React from 'react';
 import { Table } from 'react-bootstrap';
 
-/**
- * 栄養サマリー
- * 
- * 役割:
- * - 合計栄養素を見やすく表示
- * - 主要栄養素を強調
- * 
- * 設計原則:
- * - シンプルなテーブル表示
- * - 小数点以下の桁数を統一
- */
 const NutritionSummary = ({ nutrition }) => {
-  // 栄養素データの定義
+  
   const nutritionItems = [
     {
       label: 'エネルギー',
       value: nutrition.calories,
       unit: 'kcal',
       decimals: 0,
-      primary: true,
     },
     {
       label: 'タンパク質',
       value: nutrition.protein,
       unit: 'g',
       decimals: 1,
-      primary: true,
     },
     {
       label: '脂質',
       value: nutrition.fat,
       unit: 'g',
       decimals: 1,
-      primary: true,
     },
     {
       label: '炭水化物',
       value: nutrition.carbohydrates,
       unit: 'g',
       decimals: 1,
-      primary: true,
     },
     {
       label: '食物繊維',

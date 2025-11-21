@@ -71,15 +71,6 @@ const Dashboard = ({ handleLogout }) => {
     }
   };
 
-  const fetchDailySummary = async () => {
-    try {
-      const data = await mealApi.getDailySummary(selectedDate);
-      setDailySummary(data.nutrition_summary);
-    } catch (error) {
-      console.error('Failed to fetch daily summary', error);
-    }
-  };
-
   const handleMealDelete = async (mealId) => {
     if (window.confirm('この記録を本当に削除しますか？')) {
       try {
@@ -175,9 +166,10 @@ const Dashboard = ({ handleLogout }) => {
       </Navbar>
 
       <Container className="my-4">
+        {/* 食事記録セクション（全幅に変更） */}
         <Row className="mb-4">
-          <Col md={6} className="mb-4">
-            <Card className="h-100 shadow-sm">
+          <Col xs={12}>
+            <Card className="shadow-sm">
               <Card.Header className="bg-success text-white">
                 <Card.Title className="mb-0">
                   <i className="bi bi-journal-plus me-2"></i>
@@ -185,12 +177,17 @@ const Dashboard = ({ handleLogout }) => {
                 </Card.Title>
               </Card.Header>
               <Card.Body>
+                {/* メニュービルダーが広々と表示されます */}
                 <MealForm onMealCreated={handleMealCreated} />
               </Card.Body>
             </Card>
           </Col>
-          <Col md={6} className="mb-4">
-            <Card className="h-100 shadow-sm">
+        </Row>
+
+        {/* 体重記録セクション（全幅に変更） */}
+        <Row className="mb-4">
+          <Col xs={12}>
+            <Card className="shadow-sm">
               <Card.Header className="bg-info text-white">
                 <Card.Title className="mb-0">
                   <i className="bi bi-speedometer me-2"></i>
