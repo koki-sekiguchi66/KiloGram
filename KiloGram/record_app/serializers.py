@@ -128,7 +128,7 @@ class CustomMenuItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomMenuItem
         fields = '__all__'
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'custom_menu']
 
 class CustomMenuSerializer(serializers.ModelSerializer):   
     items = CustomMenuItemSerializer(many=True, required=True)
@@ -137,7 +137,7 @@ class CustomMenuSerializer(serializers.ModelSerializer):
         model = CustomMenu
         fields = '__all__'
         read_only_fields = [
-            'id', 'created_at', 'updated_at',
+            'id', 'user', 'created_at', 'updated_at',
             'total_calories', 'total_protein', 'total_fat', 'total_carbohydrates',
             'total_dietary_fiber', 'total_sodium', 'total_calcium', 'total_iron',
             'total_vitamin_a', 'total_vitamin_b1', 'total_vitamin_b2', 'total_vitamin_c',
@@ -151,8 +151,7 @@ class CustomMenuSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def create(self, validated_data):
         items_data = validated_data.pop('items')
-        user = self.context['request'].user
-        custom_menu = CustomMenu.objects.create(user=user, **validated_data)
+        custom_menu = CustomMenu.objects.create(**validated_data)
         
         CustomMenuItem.objects.bulk_create([
             CustomMenuItem(custom_menu=custom_menu, **item_data)

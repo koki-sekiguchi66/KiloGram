@@ -4,7 +4,7 @@ import FoodSearchInput from './FoodSearchInput';
 import ManualInputForm from './ManualInputForm';
 import MyMenusSelector from './MyMenuSelector';
 import MyItemsSelector from './MyItemsSelector';
-import CafeteriaSelector from './CafeteriaSelector'; // 新しいコンポーネント
+import CafeteriaSelector from './CafeteriaSelector';
 
 const MenuBuilderPanel = ({ menuBuilder }) => {
   const {
@@ -18,24 +18,55 @@ const MenuBuilderPanel = ({ menuBuilder }) => {
   } = menuBuilder;
 
   const handleFoodSelected = (item) => {
-    addMenuItem({
-      item_type: item.item_type || 'standard',
+    // 1. 分量の決定 (優先順位: amount_grams > amount > 100)
+    const amount = parseFloat(item.amount_grams || item.amount || 100);
+    
+    // 2. 栄養素の正規化処理
+    // Myアイテム(CustomFood)は *_per_100g というキーを持っていますが、
+    // メニューに追加するには calories などの絶対値キーに変換する必要があります。
+    
+    const resolveNutrient = (stdKey, customKey) => {
+        // A. 既に計算済みの値がある場合 (FoodSearchInput, Cafeteria, Manual)
+        if (item[stdKey] !== undefined && item[stdKey] !== null) {
+            return parseFloat(item[stdKey]);
+        }
+        
+        // B. 100gあたりの値がある場合 (MyItemsSelector) -> 分量に合わせて計算
+        // stdKey + '_per_100g' (例: calories_per_100g) または 指定されたcustomKey (例: carbs_per_100g) を探す
+        const per100Val = item[customKey] || item[`${stdKey}_per_100g`];
+        if (per100Val !== undefined && per100Val !== null) {
+            return (parseFloat(per100Val) * amount) / 100;
+        }
+        
+        return 0;
+    };
+
+    const newItem = {
+      // アイテム種別の判定
+      item_type: item.item_type || (item.menu_id ? 'cafeteria' : (item.calories_per_100g ? 'custom' : 'standard')),
       item_id: item.id || item.menu_id || 0,
-      item_name: item.name || item.item_name,
-      amount_grams: item.amount || 100,
-      calories: item.calories,
-      protein: item.protein,
-      fat: item.fat,
-      carbohydrates: item.carbohydrates,
-      dietary_fiber: item.dietary_fiber || 0,
-      sodium: item.sodium || 0,
-      calcium: item.calcium || 0,
-      iron: item.iron || 0,
-      vitamin_a: item.vitamin_a || 0,
-      vitamin_b1: item.vitamin_b1 || 0,
-      vitamin_b2: item.vitamin_b2 || 0,
-      vitamin_c: item.vitamin_c || 0,
-    });
+      item_name: item.name || item.item_name || item.meal_name,
+      amount_grams: amount,
+      
+      // 栄養素マッピング (Myアイテムのキー名に対応)
+      calories: resolveNutrient('calories', 'calories_per_100g'),
+      protein: resolveNutrient('protein', 'protein_per_100g'),
+      fat: resolveNutrient('fat', 'fat_per_100g'),
+      
+      // ※注意: CustomFoodモデルのフィールド名は carbs / fiber
+      carbohydrates: resolveNutrient('carbohydrates', 'carbs_per_100g'),
+      dietary_fiber: resolveNutrient('dietary_fiber', 'fiber_per_100g'),
+      
+      sodium: resolveNutrient('sodium', 'sodium_per_100g'),
+      calcium: resolveNutrient('calcium', 'calcium_per_100g'),
+      iron: resolveNutrient('iron', 'iron_per_100g'),
+      vitamin_a: resolveNutrient('vitamin_a', 'vitamin_a_per_100g'),
+      vitamin_b1: resolveNutrient('vitamin_b1', 'vitamin_b1_per_100g'),
+      vitamin_b2: resolveNutrient('vitamin_b2', 'vitamin_b2_per_100g'),
+      vitamin_c: resolveNutrient('vitamin_c', 'vitamin_c_per_100g'),
+    };
+
+    addMenuItem(newItem);
   };
   
   return (
