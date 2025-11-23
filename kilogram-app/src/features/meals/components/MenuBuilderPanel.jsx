@@ -1,4 +1,3 @@
-import React from 'react';
 import { Card, Form, ButtonGroup, Button } from 'react-bootstrap';
 import FoodSearchInput from './FoodSearchInput';
 import ManualInputForm from './ManualInputForm';

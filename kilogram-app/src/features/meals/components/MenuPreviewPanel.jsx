@@ -1,4 +1,3 @@
-import React from 'react';
 import { Card, Form, Button, Collapse, Badge } from 'react-bootstrap';
 import NutritionSummary from './NutritionSummary';
 import CurrentMenuDisplay from './CurrentMenuDisplay';

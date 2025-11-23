@@ -1,4 +1,3 @@
-import React from 'react';
 import { ListGroup, Button, Badge } from 'react-bootstrap';
 
 const CurrentMenuDisplay = ({ menuBuilder }) => {

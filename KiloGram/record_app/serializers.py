@@ -3,11 +3,6 @@ from .models import MealRecord, MealRecordItem, CustomMenu, CustomMenuItem, Stan
 from django.contrib.auth.models import User
 from django.db import transaction
 
-class StandardFoodSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = StandardFood
-        fields = '__all__'
-
 class CustomFoodSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomFood

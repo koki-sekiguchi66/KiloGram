@@ -3,6 +3,7 @@ import { Container, Row, Col, Card, Navbar, Nav, Button, Alert, Badge, Form } fr
 
 import { MealForm, EditMealModal, CalorieChart } from '@/features/meals';
 import { WeightForm, WeightChart } from '@/features/weights';
+import { InstallPWA } from '@/components/PWA';
 import { mealApi } from '@/features/meals/api/mealApi';
 import { weightApi } from '@/features/weights/api/weightApi';
 
@@ -24,6 +25,7 @@ const Dashboard = ({ handleLogout }) => {
       } catch (error) {
         console.error('Failed to fetch meals', error);
         setMessage('食事記録の取得に失敗しました。');
+        setTimeout(() => setMessage(''), 5000);
       }
     };
 
@@ -34,6 +36,7 @@ const Dashboard = ({ handleLogout }) => {
       } catch (error) {
         console.error('Failed to fetch weights', error);
         setMessage('体重記録の取得に失敗しました。');
+        setTimeout(() => setMessage(''), 5000);
       }
     };
 
@@ -43,6 +46,8 @@ const Dashboard = ({ handleLogout }) => {
         setDailySummary(data.nutrition_summary);
       } catch (error) {
         console.error('Failed to fetch daily summary', error);
+        setMessage('日次サマリーの取得に失敗しました。');
+        setTimeout(() => setMessage(''), 5000);
       }
     };
 
@@ -79,9 +84,12 @@ const Dashboard = ({ handleLogout }) => {
         setAllMeals(updatedAllMeals);
         filterMealsByDate(updatedAllMeals, selectedDate);
         fetchDailySummary();
+        setMessage('記録を削除しました。');
+        setTimeout(() => setMessage(''), 3000);
       } catch (error) {
         console.error('Failed to delete meal', error);
         setMessage('記録の削除に失敗しました。');
+        setTimeout(() => setMessage(''), 5000);
       }
     }
   };
@@ -150,6 +158,7 @@ const Dashboard = ({ handleLogout }) => {
 
   return (
     <>
+      <InstallPWA />
       <Navbar bg="primary" variant="dark" className="shadow-sm">
         <Container>
           <Navbar.Brand>KiloGram</Navbar.Brand>
@@ -289,8 +298,12 @@ const Dashboard = ({ handleLogout }) => {
               </Card.Header>
               <Card.Body>
                 {message && (
-                  <Alert variant="danger">
-                    <i className="bi bi-exclamation-triangle me-2"></i>
+                  <Alert
+                    variant={message.includes('失敗') ? 'danger' : 'success'}
+                    dismissible
+                    onClose={() => setMessage('')}
+                  >
+                    <i className={`bi ${message.includes('失敗') ? 'bi-exclamation-triangle' : 'bi-check-circle'} me-2`}></i>
                     {message}
                   </Alert>
                 )}
