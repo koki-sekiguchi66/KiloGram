@@ -1,4 +1,3 @@
-import React from 'react';
 import { Row, Col, Alert } from 'react-bootstrap';
 import { useMenuBuilder } from '../hooks/useMenuBuilder';
 import MenuBuilderPanel from './MenuBuilderPanel';
