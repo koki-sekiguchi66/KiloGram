@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import { Login, Register } from '@/features/auth';
-import { Dashboard } from '@/components/Layout';
+// インポートパスを変更（featuresから読み込む）
+import { Dashboard } from '@/features/dashboard';
 
 function App() {
   const [token, setToken] = useState(null);

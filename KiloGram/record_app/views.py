@@ -3,12 +3,11 @@ from rest_framework.response import Response
 from rest_framework import status, viewsets, generics, permissions
 from rest_framework.decorators import api_view, action, permission_classes
 from datetime import date
-from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.permissions import AllowAny
 
-from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu, MealRecordItem, CustomMenu, CustomMenuItem
+from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu, CustomMenu
 from .serializers import (
     MealRecordSerializer, MealRecordListSerializer, 
     UserRegistrationSerializer, WeightRecordSerializer,
@@ -16,6 +15,7 @@ from .serializers import (
     CustomMenuSerializer, CustomMenuListSerializer
 )
 from .business_logic.nutrition_calculator import NutritionCalculatorService
+from .services import MealService, WeightService, CustomFoodService
 
 # --- ViewSets ---
 
@@ -23,7 +23,7 @@ class MealRecordViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        # itemsをプリフェッチしてクエリ削減
+        # サービス層への委譲ポイントだが、単純なクエリはView層に残すのがDRFの慣習
         return MealRecord.objects.filter(
             user=self.request.user
         ).prefetch_related('items').order_by('-record_date', '-created_at')
@@ -35,9 +35,7 @@ class MealRecordViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-    
-    def perform_update(self, serializer):
-        serializer.save()
+
 
 class WeightRecordViewSet(viewsets.ModelViewSet):
     serializer_class = WeightRecordSerializer
@@ -47,18 +45,23 @@ class WeightRecordViewSet(viewsets.ModelViewSet):
         return WeightRecord.objects.filter(user=self.request.user).order_by('-record_date')
 
     def create(self, request, *args, **kwargs):
+        # Service層へロジックを委譲
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        
         weight_data = serializer.validated_data['weight']
         record_date = serializer.validated_data['record_date']
-        obj, created = WeightRecord.objects.update_or_create(
+        
+        obj, created = WeightService.register_weight(
             user=request.user,
-            record_date=record_date,
-            defaults={'weight': weight_data}
+            weight=weight_data,
+            record_date=record_date
         )
+        
         response_serializer = self.get_serializer(obj)
         status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         return Response(response_serializer.data, status=status_code)
+
 
 class CustomFoodViewSet(viewsets.ModelViewSet):
     serializer_class = CustomFoodSerializer
@@ -76,8 +79,8 @@ class CustomFoodViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'])
     def create_from_meal(self, request):
         try:
-            calculator = NutritionCalculatorService()
-            custom_food = calculator.create_custom_food(request.user, request.data)
+            # Service層へ委譲
+            custom_food = CustomFoodService.create_custom_food(request.user, request.data)
             return Response({
                 'message': 'カスタム食品を作成しました',
                 'food': {
@@ -88,6 +91,7 @@ class CustomFoodViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': str(e)}, status=400)
+
 
 class CustomMenuViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -105,66 +109,20 @@ class CustomMenuViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
     
-    def perform_update(self, serializer):
-        serializer.save()
-    
     @action(detail=True, methods=['post'])
-    @transaction.atomic
     def create_meal_from_menu(self, request, pk=None):
         custom_menu = self.get_object()
-        record_date = request.data.get('record_date', date.today())
-        meal_timing = request.data.get('meal_timing', 'breakfast')
-        multiplier = float(request.data.get('multiplier', 1.0))
-        
-        if multiplier <= 0:
-            return Response({'error': '倍率は正の数でなければなりません'}, status=400)
-        
-        meal_record = MealRecord.objects.create(
-            user=request.user,
-            record_date=record_date,
-            meal_timing=meal_timing,
-            meal_name=custom_menu.name,
-            calories=custom_menu.total_calories * multiplier,
-            protein=custom_menu.total_protein * multiplier,
-            fat=custom_menu.total_fat * multiplier,
-            carbohydrates=custom_menu.total_carbohydrates * multiplier,
-            dietary_fiber=custom_menu.total_dietary_fiber * multiplier,
-            sodium=custom_menu.total_sodium * multiplier,
-            calcium=custom_menu.total_calcium * multiplier,
-            iron=custom_menu.total_iron * multiplier,
-            vitamin_a=custom_menu.total_vitamin_a * multiplier,
-            vitamin_b1=custom_menu.total_vitamin_b1 * multiplier,
-            vitamin_b2=custom_menu.total_vitamin_b2 * multiplier,
-            vitamin_c=custom_menu.total_vitamin_c * multiplier,
-        )
-        
-        menu_items = custom_menu.items.all()
-        MealRecordItem.objects.bulk_create([
-            MealRecordItem(
-                meal_record=meal_record,
-                item_type=item.item_type,
-                item_id=item.item_id,
-                item_name=item.item_name,
-                amount_grams=item.amount_grams * multiplier,
-                display_order=item.display_order,
-                calories=item.calories * multiplier,
-                protein=item.protein * multiplier,
-                fat=item.fat * multiplier,
-                carbohydrates=item.carbohydrates * multiplier,
-                dietary_fiber=item.dietary_fiber * multiplier,
-                sodium=item.sodium * multiplier,
-                calcium=item.calcium * multiplier,
-                iron=item.iron * multiplier,
-                vitamin_a=item.vitamin_a * multiplier,
-                vitamin_b1=item.vitamin_b1 * multiplier,
-                vitamin_b2=item.vitamin_b2 * multiplier,
-                vitamin_c=item.vitamin_c * multiplier,
+        try:
+            # Service層へ委譲。複雑なコピー・計算ロジックをViewから排除。
+            meal_record = MealService.create_meal_from_menu(
+                user=request.user,
+                menu=custom_menu,
+                data=request.data
             )
-            for item in menu_items
-        ])
-        
-        serializer = MealRecordSerializer(meal_record)
-        return Response({'message': '食事記録を作成しました', 'meal_record': serializer.data}, status=201)
+            serializer = MealRecordSerializer(meal_record)
+            return Response({'message': '食事記録を作成しました', 'meal_record': serializer.data}, status=201)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=400)
     
     @action(detail=False, methods=['get'])
     def search(self, request):
@@ -175,6 +133,7 @@ class CustomMenuViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(menus, many=True)
         return Response(serializer.data)
 
+
 # --- Generic Views / API Functions ---
 
 class MealTimingChoicesView(APIView):
@@ -183,9 +142,12 @@ class MealTimingChoicesView(APIView):
         formatted_choices = [{"value": value, "label": label} for value, label in choices]
         return Response(formatted_choices)
 
+
 class UserRegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
+
+# 以下、単純な参照系APIはそのまま維持、もしくはCalculatorServiceを呼び出す形とする
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
@@ -244,8 +206,7 @@ def daily_nutrition_summary(request):
 @permission_classes([permissions.IsAuthenticated])
 def create_custom_food(request):
     try:
-        calculator = NutritionCalculatorService()
-        custom_food = calculator.create_custom_food(request.user, request.data)
+        custom_food = CustomFoodService.create_custom_food(request.user, request.data)
         return Response({
             'message': 'カスタム食品を作成しました',
             'food': {'id': f'custom_{custom_food.id}', 'name': custom_food.name, 'type': 'custom'}
