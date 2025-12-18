@@ -1,4 +1,4 @@
-# kilogram_project/settings/production.py
+# kilogram_project/settings/development.py
 
 import os
 import socket
@@ -6,7 +6,7 @@ from pathlib import Path
 from .base import *
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS_str = os.getenv('ALLOWED_HOSTS', '')
 ALLOWED_HOSTS = ALLOWED_HOSTS_str.split(',') if ALLOWED_HOSTS_str else []
@@ -45,16 +45,18 @@ if POSTGRES_DB:
             'PASSWORD': POSTGRES_PASSWORD or '',
             'HOST': db_host,
             'PORT': DB_PORT,
-            'CONN_MAX_AGE': 600,
-            'OPTIONS': {
-                'connect_timeout': 10,
-            }
         }
     }
 else:
-    raise Exception('本番環境ではPostgreSQLの設定が必須です')
+    # フォールバック：SQLite を使う
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
-# CORS設定（本番環境では厳格に）
+# CORS設定（開発環境では緩い設定）
 CORS_ALLOWED_ORIGINS_str = os.getenv('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS_str.split(',') if CORS_ALLOWED_ORIGINS_str else []
 
@@ -66,14 +68,3 @@ CORS_ALLOW_HEADERS = [
 # CSRF設定
 CSRF_TRUSTED_ORIGINS_str = os.getenv('CSRF_TRUSTED_ORIGINS', '')
 CSRF_TRUSTED_ORIGINS = CSRF_TRUSTED_ORIGINS_str.split(',') if CSRF_TRUSTED_ORIGINS_str else []
-
-# Security settings
-SECURE_SSL_REDIRECT = False  # nginxでHTTPSを処理する場合
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-X_FRAME_OPTIONS = 'DENY'
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True

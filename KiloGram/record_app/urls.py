@@ -1,12 +1,13 @@
-# record_app/urls.py
+# KiloGram/record_app/urls.py
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework.authtoken.views import obtain_auth_token
 from .views import (
     MealTimingChoicesView, MealRecordViewSet, WeightRecordViewSet, CustomFoodViewSet, UserRegistrationView, CustomMenuViewSet,
     search_foods, food_suggestions, calculate_nutrition, daily_nutrition_summary, create_custom_food, 
-    list_custom_foods, update_custom_food, delete_custom_food, list_cafeteria_menus, health_check
-    )
+    list_custom_foods, update_custom_food, delete_custom_food, list_cafeteria_menus, health_check,
+    process_nutrition_label
+)
 
 router = DefaultRouter()
 router.register(r'meals', MealRecordViewSet, basename='meal')
@@ -36,6 +37,9 @@ urlpatterns = [
 
     # 食堂メニュー
     path('cafeteria/list/', list_cafeteria_menus, name='list-cafeteria'),
+
+    # OCR エンドポイント
+    path('ocr/nutrition-label/', process_nutrition_label, name='ocr-nutrition-label'),
 
     # 本番環境用ヘルスチェック
     path('health/', health_check, name='health-check'),

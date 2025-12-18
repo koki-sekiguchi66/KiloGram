@@ -3,9 +3,9 @@ services:
     image: postgres:16-alpine
     container_name: kilogram_db
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -97,6 +97,7 @@ services:
       dockerfile: Dockerfile
       target: development
     container_name: kilogram_frontend
+    command: npm run dev -- --host 0.0.0.0
     volumes:
       - ./kilogram-app:/app
       - /app/node_modules

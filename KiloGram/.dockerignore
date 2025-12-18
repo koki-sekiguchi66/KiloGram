@@ -1,41 +1,50 @@
-# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
+*.py[cod]
+*$py.class
 *.so
-*.egg
-*.egg-info/
-dist/
-build/
-venv/
+.Python
 env/
-.env
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
 *.log
-
-# Database
-*.sqlite3
+local_settings.py
 db.sqlite3
-
-# IDE
-.vscode/
-.idea/
-*.swp
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Git
+.env
+.venv
+staticfiles/
+media/
 .git/
 .gitignore
-
-# Tests
-.coverage
-htmlcov/
-.pytest_cache/
-
-# Documentation
-docs/
+.dockerignore
+Dockerfile
+docker-compose*.yml
+README.md
 *.md

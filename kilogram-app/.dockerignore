@@ -1,37 +1,15 @@
-# Node
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# Build
-dist/
-dist-ssr/
-build/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# Git
+npm-debug.log
+yarn-error.log
 .git/
 .gitignore
-
-# Tests
-coverage/
-.nyc_output/
-
-# Documentation
-docs/
+.dockerignore
+Dockerfile
+docker-compose*.yml
+README.md
 *.md
+dist/
+.vite/
+.env
+.env.local
+.env.production
