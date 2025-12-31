@@ -1,5 +1,3 @@
-# KiloGram/Dockerfile
-
 FROM python:3.12-slim AS base
 
 ENV PYTHONUNBUFFERED=1 \
@@ -8,7 +6,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# 基本パッケージとTesseract OCRのインストール
+# 基本パッケージとTesseract OCR、OpenCV依存パッケージのインストール
 RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-client \
     gcc \
@@ -18,14 +16,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-jpn \
     tesseract-ocr-eng \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # 開発環境
 FROM base AS development
 
-COPY requirements.txt .
+# CPU版PyTorchを先にインストール（サイズ削減のため）
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 RUN mkdir -p /app/logs /app/staticfiles /app/media
 
@@ -38,9 +41,12 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 # 本番環境
 FROM base AS production
 
-COPY requirements.txt .
+# CPU版PyTorchを先にインストール
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
+    pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
     pip install gunicorn
 
 COPY . .
@@ -54,4 +60,4 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["gunicorn", "KiloGram.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+CMD ["gunicorn", "kilogram_project.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]

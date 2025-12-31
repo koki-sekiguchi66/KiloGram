@@ -1,10 +1,8 @@
-# record_app/views.py
-
 import os
-import re
 import logging
 import tempfile
 from pathlib import Path
+from datetime import date
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -12,15 +10,8 @@ from rest_framework import status, viewsets, generics, permissions
 from rest_framework.decorators import api_view, action, permission_classes, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
-from datetime import date
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-
-# OCR関連
-import cv2
-import numpy as np
-from PIL import Image
-import pytesseract
 
 from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu, CustomMenu
 from .serializers import (
@@ -35,9 +26,9 @@ from .services import MealService, WeightService, CustomFoodService
 logger = logging.getLogger(__name__)
 
 
-# ===============================
+# =============================================================================
 # OCR処理エンドポイント
-# ===============================
+# =============================================================================
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
@@ -46,221 +37,131 @@ def process_nutrition_label(request):
     """
     栄養成分表示のOCR処理
     
-    画像を受け取り、Tesseractで文字認識を行い、
-    栄養成分の数値を抽出して返す
-    """
-    logger.info("=== OCR処理開始 ===")
-    logger.info(f"User: {request.user}")
-    logger.info(f"FILES: {request.FILES}")
-    logger.info(f"POST data: {request.POST}")
+    画像を受け取り、EasyOCRにより栄養成分の数値を抽出して返します。
     
+    - 位置情報を活用した意味ブロック形成
+    - 適応的前処理（色反転検出、傾き補正）
+    - OCR誤認識パターンの後処理補正
+    - 栄養素間整合性検証
+    
+    Request:
+        POST /api/ocr/nutrition-label/
+        Content-Type: multipart/form-data
+        
+        image: 栄養成分表示の画像ファイル (JPEG/PNG)
+    
+    """
+    logger.info("=== OCR処理開始（意味ブロックアプローチ）===")
+    logger.info(f"User: {request.user}")
+    logger.info(f"FILES: {list(request.FILES.keys())}")
+    
+    # 画像ファイルの検証
     if 'image' not in request.FILES:
-        logger.error("画像ファイルが見つかりません")
+        logger.warning("画像ファイルが送信されていません")
         return Response(
-            {'error': '画像ファイルが必要です'},
+            {'error': '画像ファイルが必要です', 'success': False},
             status=status.HTTP_400_BAD_REQUEST
         )
     
     image_file = request.FILES['image']
-    logger.info(f"受信ファイル: {image_file.name}, サイズ: {image_file.size} bytes")
     
-    # ファイルサイズチェック (10MB)
-    if image_file.size > 10 * 1024 * 1024:
-        logger.error(f"ファイルサイズ超過: {image_file.size} bytes")
+    # ファイルサイズ制限（10MB）
+    max_size = 10 * 1024 * 1024
+    if image_file.size > max_size:
+        logger.warning(f"ファイルサイズが制限を超えています: {image_file.size} bytes")
         return Response(
-            {'error': 'ファイルサイズは10MB以下にしてください'},
+            {'error': 'ファイルサイズは10MB以下にしてください', 'success': False},
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    try:
-        # 一時ファイルに保存
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
-            for chunk in image_file.chunks():
-                tmp_file.write(chunk)
-            tmp_path = tmp_file.name
-        
-        logger.info(f"一時ファイル保存: {tmp_path}")
-        
-        # 画像読み込みと前処理
-        img = cv2.imread(tmp_path)
-        if img is None:
-            logger.error("画像の読み込みに失敗")
-            os.unlink(tmp_path)
-            return Response(
-                {'error': '画像の読み込みに失敗しました'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        logger.info(f"画像サイズ: {img.shape}")
-        
-        # グレースケール変換
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        
-        # ノイズ除去
-        denoised = cv2.fastNlMeansDenoising(gray, None, h=10, templateWindowSize=7, searchWindowSize=21)
-        
-        # 適応的二値化
-        binary = cv2.adaptiveThreshold(
-            denoised, 255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY,
-            11, 2
-        )
-        
-        # OCR実行（日本語+英語）
-        logger.info("Tesseract OCR実行中...")
-        custom_config = r'--oem 3 --psm 6 -c preserve_interword_spaces=1'
-        ocr_text = pytesseract.image_to_string(
-            binary,
-            lang='jpn+eng',
-            config=custom_config
-        )
-        
-        logger.info(f"OCR結果テキスト長: {len(ocr_text)}")
-        logger.debug(f"OCR結果:\n{ocr_text}")
-        
-        # 一時ファイル削除
-        os.unlink(tmp_path)
-        
-        # 栄養成分を抽出
-        nutrition_data = extract_nutrition_values(ocr_text)
-        
-        logger.info(f"抽出された栄養成分: {nutrition_data}")
-        
-        return Response({
-            'success': True,
-            'nutrition': nutrition_data,
-            'raw_text': ocr_text if os.getenv('DEBUG', 'False') == 'True' else None
-        }, status=status.HTTP_200_OK)
-        
-    except Exception as e:
-        logger.exception("OCR処理中にエラーが発生しました")
-        if 'tmp_path' in locals() and os.path.exists(tmp_path):
-            os.unlink(tmp_path)
+    # MIMEタイプの検証
+    allowed_types = ['image/jpeg', 'image/png', 'image/webp']
+    if image_file.content_type not in allowed_types:
+        logger.warning(f"サポートされていないファイル形式: {image_file.content_type}")
         return Response(
-            {'error': f'OCR処理に失敗しました: {str(e)}'},
+            {'error': 'サポートされている形式: JPEG, PNG, WebP', 'success': False},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    tmp_path = None
+    
+    try:
+        # 一時ファイルとして保存
+        suffix = Path(image_file.name).suffix or '.jpg'
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            for chunk in image_file.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+        
+        logger.info(f"一時ファイル作成: {tmp_path}")
+        
+        # OCRプロセッサをインスタンス化
+        from .business_logic.ocr_processor import NutritionOCRProcessor
+        processor = NutritionOCRProcessor(gpu=False)
+        
+        # OCR処理実行
+        result = processor.process_nutrition_label(tmp_path)
+        
+        logger.info(f"OCR処理完了: success={result.get('success')}")
+        
+        if result.get('success'):
+            logger.info(f"抽出された栄養成分: {result.get('nutrition')}")
+            
+            # デバッグモードでのみ追加情報を返す
+            debug_mode = os.getenv('DEBUG', 'False').lower() == 'true'
+            
+            response_data = {
+                'success': True,
+                'nutrition': result['nutrition'],
+                'validation': result.get('validation', {}),
+            }
+            
+            if debug_mode:
+                response_data['detected_texts'] = result.get('detected_texts', [])
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+        else:
+            logger.warning(f"OCR処理失敗: {result.get('error')}")
+            return Response({
+                'success': False,
+                'error': result.get('error', 'OCR処理に失敗しました'),
+                'nutrition': result.get('nutrition'),
+                'detected_texts': result.get('detected_texts', [])
+            }, status=status.HTTP_200_OK)
+    
+    except ImportError as e:
+        logger.error(f"OCRライブラリのインポートエラー: {str(e)}")
+        return Response(
+            {
+                'error': 'OCR機能が利用できません。システム管理者に連絡してください。',
+                'success': False
+            },
+            status=status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+    
+    except Exception as e:
+        logger.exception("OCR処理中に予期しないエラーが発生しました")
+        return Response(
+            {'error': f'OCR処理に失敗しました: {str(e)}', 'success': False},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    
+    finally:
+        # 一時ファイルのクリーンアップ
+        if tmp_path and os.path.exists(tmp_path):
+            try:
+                os.unlink(tmp_path)
+                logger.info(f"一時ファイル削除: {tmp_path}")
+            except Exception as e:
+                logger.warning(f"一時ファイル削除失敗: {str(e)}")
 
 
-def extract_nutrition_values(text):
-    """
-    OCRで認識されたテキストから栄養成分の数値を抽出
-    """
-    nutrition_data = {
-        # 基本栄養素
-        'calories': None,
-        'protein': None,
-        'fat': None,
-        'carbohydrates': None,
-        # 詳細栄養素
-        'dietary_fiber': None,
-        'sodium': None,
-        'calcium': None,
-        'iron': None,
-        'vitamin_a': None,
-        'vitamin_b1': None,
-        'vitamin_b2': None,
-        'vitamin_c': None,
-    }
-    
-    # テキストを正規化（全角→半角、改行を保持）
-    text = normalize_text(text)
-    
-    # 各栄養素のパターン定義
-    patterns = {
-        'calories': [
-            r'エネルギー[:\s]*([0-9.]+)\s*(?:kcal|キロカロリー)',
-            r'熱量[:\s]*([0-9.]+)\s*(?:kcal|キロカロリー)',
-            r'カロリー[:\s]*([0-9.]+)',
-        ],
-        'protein': [
-            r'(?:たんぱく質|タンパク質|蛋白質|たん白質)[:\s]*([0-9.]+)\s*g',
-            r'protein[:\s]*([0-9.]+)\s*g',
-        ],
-        'fat': [
-            r'脂質[:\s]*([0-9.]+)\s*g',
-            r'fat[:\s]*([0-9.]+)\s*g',
-        ],
-        'carbohydrates': [
-            r'炭水化物[:\s]*([0-9.]+)\s*g',
-            r'糖質[:\s]*([0-9.]+)\s*g',
-            r'carbohydrate[:\s]*([0-9.]+)\s*g',
-        ],
-        'dietary_fiber': [
-            r'食物繊維[:\s]*([0-9.]+)\s*g',
-            r'食物せんい[:\s]*([0-9.]+)\s*g',
-            r'fiber[:\s]*([0-9.]+)\s*g',
-        ],
-        'sodium': [
-            r'ナトリウム[:\s]*([0-9.]+)\s*mg',
-            r'食塩相当量[:\s]*([0-9.]+)\s*g',
-            r'sodium[:\s]*([0-9.]+)\s*mg',
-        ],
-        'calcium': [
-            r'カルシウム[:\s]*([0-9.]+)\s*mg',
-            r'calcium[:\s]*([0-9.]+)\s*mg',
-        ],
-        'iron': [
-            r'鉄[:\s]*([0-9.]+)\s*mg',
-            r'iron[:\s]*([0-9.]+)\s*mg',
-        ],
-        'vitamin_a': [
-            r'ビタミンa[:\s]*([0-9.]+)\s*(?:μg|mcg|ug)',
-            r'vitamin\s*a[:\s]*([0-9.]+)\s*(?:μg|mcg|ug)',
-        ],
-        'vitamin_b1': [
-            r'ビタミンb1[:\s]*([0-9.]+)\s*mg',
-            r'vitamin\s*b1[:\s]*([0-9.]+)\s*mg',
-        ],
-        'vitamin_b2': [
-            r'ビタミンb2[:\s]*([0-9.]+)\s*mg',
-            r'vitamin\s*b2[:\s]*([0-9.]+)\s*mg',
-        ],
-        'vitamin_c': [
-            r'ビタミンc[:\s]*([0-9.]+)\s*mg',
-            r'vitamin\s*c[:\s]*([0-9.]+)\s*mg',
-        ],
-    }
-    
-    # 各栄養素について値を検索
-    for nutrient, pattern_list in patterns.items():
-        for pattern in pattern_list:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                try:
-                    value = float(match.group(1))
-                    nutrition_data[nutrient] = value
-                    logger.debug(f"{nutrient}を検出: {value}")
-                    break  # 最初に見つかったパターンを採用
-                except (ValueError, IndexError):
-                    continue
-    
-    return nutrition_data
-
-
-def normalize_text(text):
-    """
-    テキストを正規化（全角→半角変換など）
-    """
-    import unicodedata
-    
-    # 全角英数字を半角に変換
-    text = unicodedata.normalize('NFKC', text)
-    
-    # 余分な空白を削除（ただし改行は保持）
-    lines = text.split('\n')
-    normalized_lines = [' '.join(line.split()) for line in lines]
-    text = '\n'.join(normalized_lines)
-    
-    return text
-
-
-# ===============================
+# =============================================================================
 # ViewSets
-# ===============================
+# =============================================================================
 
 class MealRecordViewSet(viewsets.ModelViewSet):
+    """食事記録のCRUD操作を提供するViewSet"""
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
@@ -271,6 +172,7 @@ class MealRecordViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'list':
             return MealRecordListSerializer
+        
         return MealRecordSerializer
     
     def perform_create(self, serializer):
@@ -278,6 +180,7 @@ class MealRecordViewSet(viewsets.ModelViewSet):
 
 
 class WeightRecordViewSet(viewsets.ModelViewSet):
+    """体重記録のCRUD操作を提供するViewSet"""
     serializer_class = WeightRecordSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -299,10 +202,12 @@ class WeightRecordViewSet(viewsets.ModelViewSet):
         
         response_serializer = self.get_serializer(obj)
         status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+
         return Response(response_serializer.data, status=status_code)
 
 
 class CustomFoodViewSet(viewsets.ModelViewSet):
+    """MyアイテムのCRUD操作を提供するViewSet"""
     serializer_class = CustomFoodSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -320,18 +225,20 @@ class CustomFoodViewSet(viewsets.ModelViewSet):
         try:
             custom_food = CustomFoodService.create_custom_food(request.user, request.data)
             return Response({
-                'message': 'カスタム食品を作成しました',
+                'message': 'Myアイテムを作成しました',
                 'food': {
                     'id': f'custom_{custom_food.id}',
                     'name': custom_food.name,
                     'type': 'custom'
                 }
             }, status=status.HTTP_201_CREATED)
+        
         except Exception as e:
             return Response({'error': str(e)}, status=400)
 
 
 class CustomMenuViewSet(viewsets.ModelViewSet):
+    """MyメニューのCRUD操作を提供するViewSet"""
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
@@ -342,6 +249,7 @@ class CustomMenuViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == 'list':
             return CustomMenuListSerializer
+        
         return CustomMenuSerializer
     
     def perform_create(self, serializer):
@@ -349,6 +257,7 @@ class CustomMenuViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def create_meal_from_menu(self, request, pk=None):
+        """Myメニューから食事記録を作成"""
         custom_menu = self.get_object()
         try:
             meal_record = MealService.create_meal_from_menu(
@@ -357,25 +266,33 @@ class CustomMenuViewSet(viewsets.ModelViewSet):
                 data=request.data
             )
             serializer = MealRecordSerializer(meal_record)
-            return Response({'message': '食事記録を作成しました', 'meal_record': serializer.data}, status=201)
+
+            return Response({
+                'message': '食事記録を作成しました',
+                'meal_record': serializer.data
+            }, status=201)
+        
         except ValueError as e:
             return Response({'error': str(e)}, status=400)
     
     @action(detail=False, methods=['get'])
     def search(self, request):
+        """Myメニューを検索"""
         query = request.query_params.get('q', '')
         if not query:
             return Response({'error': '検索キーワードを指定してください'}, status=400)
+        
         menus = self.get_queryset().filter(name__icontains=query)
         serializer = self.get_serializer(menus, many=True)
         return Response(serializer.data)
 
 
-# ===============================
-# Generic Views
-# ===============================
+# =============================================================================
+# General Views
+# =============================================================================
 
 class MealTimingChoicesView(APIView):
+    """食事タイミングの選択肢を返すView"""
     def get(self, request, *args, **kwargs):
         choices = MealRecord.MEAL_TIMING_CHOICES
         formatted_choices = [{"value": value, "label": label} for value, label in choices]
@@ -383,20 +300,23 @@ class MealTimingChoicesView(APIView):
 
 
 class UserRegistrationView(generics.CreateAPIView):
+    """ユーザー登録View"""
     serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
 
 
-# ===============================
-# API Functions
-# ===============================
+# =============================================================================
+# API Functions - 食品検索・栄養計算
+# =============================================================================
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def search_foods(request):
+    """データベースから食品を検索"""
     query = request.GET.get('q', '')
     if not query:
         return Response({'error': '検索キーワードが必要です'}, status=400)
+    
     if len(query) < 2:
         return Response({'foods': []})
     
@@ -408,9 +328,11 @@ def search_foods(request):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def food_suggestions(request):
+    """食品名のサジェストを取得"""
     query = request.GET.get('q', '')
     if not query or len(query) < 2:
         return Response({'suggestions': []})
+    
     calculator = NutritionCalculatorService()
     suggestions = calculator.get_food_suggestions(query)
     return Response({'suggestions': suggestions})
@@ -419,6 +341,7 @@ def food_suggestions(request):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def calculate_nutrition(request):
+    """指定量の栄養素を計算"""
     food_id = request.data.get('food_id')
     amount = request.data.get('amount', 100)
     if not food_id:
@@ -434,6 +357,7 @@ def calculate_nutrition(request):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def daily_nutrition_summary(request):
+    """指定日の栄養素サマリーを取得"""
     target_date_str = request.GET.get('date')
     if target_date_str:
         try:
@@ -448,14 +372,23 @@ def daily_nutrition_summary(request):
     return Response({'date': target_date, 'nutrition_summary': summary})
 
 
+# =============================================================================
+# API Functions - カスタム食品
+# =============================================================================
+
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def create_custom_food(request):
+    """カスタム食品を作成"""
     try:
         custom_food = CustomFoodService.create_custom_food(request.user, request.data)
         return Response({
             'message': 'カスタム食品を作成しました',
-            'food': {'id': f'custom_{custom_food.id}', 'name': custom_food.name, 'type': 'custom'}
+            'food': {
+                'id': f'custom_{custom_food.id}',
+                'name': custom_food.name,
+                'type': 'custom'
+            }
         }, status=201)
     except Exception as e:
         return Response({'error': str(e)}, status=400)
@@ -464,6 +397,7 @@ def create_custom_food(request):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def list_custom_foods(request):
+    """ユーザーのカスタム食品一覧を取得"""
     custom_foods = CustomFood.objects.filter(user=request.user).order_by('name')
     serializer = CustomFoodSerializer(custom_foods, many=True)
     return Response(serializer.data)
@@ -472,6 +406,7 @@ def list_custom_foods(request):
 @api_view(['PUT'])
 @permission_classes([permissions.IsAuthenticated])
 def update_custom_food(request, food_id):
+    """カスタム食品を更新"""
     try:
         custom_food = CustomFood.objects.get(id=food_id, user=request.user)
         serializer = CustomFoodSerializer(custom_food, data=request.data, partial=True)
@@ -486,6 +421,7 @@ def update_custom_food(request, food_id):
 @api_view(['DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def delete_custom_food(request, food_id):
+    """カスタム食品を削除"""
     try:
         custom_food = CustomFood.objects.get(id=food_id, user=request.user)
         custom_food.delete()
@@ -494,9 +430,14 @@ def delete_custom_food(request, food_id):
         return Response({'error': 'カスタム食品が見つかりません'}, status=404)
 
 
+# =============================================================================
+# API Functions - 食堂メニュー
+# =============================================================================
+
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def list_cafeteria_menus(request):
+    """食堂メニュー一覧を取得"""
     category = request.GET.get('category')
     menus = CafeteriaMenu.objects.all()
     if category:
@@ -505,8 +446,13 @@ def list_cafeteria_menus(request):
     return Response(serializer.data)
 
 
+# =============================================================================
+# ヘルスチェック
+# =============================================================================
+
 @csrf_exempt
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def health_check(request):
+    """本番環境用ヘルスチェックエンドポイント"""
     return JsonResponse({'status': 'healthy', 'service': 'kilogram-api'})

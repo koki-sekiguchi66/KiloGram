@@ -1,7 +1,10 @@
 # KiloGram/record_app/tasks.py
+"""
+Celery非同期タスク定義
+
+食堂メニューの自動更新、OCR処理などの非同期タスクを定義します。
+"""
 from celery import shared_task
-from .business_logic.cafeteria_scraping import CafeteriaScraper
-from .business_logic.ocr_processor import NutritionOCRProcessor
 from pathlib import Path
 import os
 import logging
@@ -11,12 +14,19 @@ logger = logging.getLogger(__name__)
 
 @shared_task
 def update_cafeteria_menus_task():
-    """食堂メニューを自動で更新"""
+    """
+    食堂メニューを自動で更新
+    
+    定期実行により、食堂のウェブサイトから最新のメニュー情報を
+    スクレイピングしてデータベースを更新します。
+    """
     try:
+        from .business_logic.cafeteria_scraping import CafeteriaScraper
         scraper = CafeteriaScraper()
         count = scraper.fetch_and_update_menus()
         return f"メニューを更新しました。{count}件のメニューを取得しました。"
     except Exception as e:
+        logger.exception("食堂メニュー更新エラー")
         return f"メニューの更新に失敗しました: {str(e)}"
 
 
@@ -24,6 +34,9 @@ def update_cafeteria_menus_task():
 def process_nutrition_label_task(image_path):
     """
     栄養成分表示のOCR処理を非同期実行
+    
+    重いOCR処理をCeleryワーカーにオフロードすることで、
+    APIレスポンス時間を改善します。
     
     設計原則:
     - 重い処理をバックグラウンドで実行
@@ -43,8 +56,9 @@ def process_nutrition_label_task(image_path):
         if not os.path.exists(image_path):
             raise FileNotFoundError(f"Image file not found: {image_path}")
         
-        # OCR処理
-        processor = NutritionOCRProcessor()
+        # OCR処理（意味ブロックアプローチ版）
+        from .business_logic.ocr_processor import NutritionOCRProcessor
+        processor = NutritionOCRProcessor(gpu=False)
         result = processor.process_nutrition_label(image_path)
         
         # 一時ファイルの削除
@@ -58,7 +72,7 @@ def process_nutrition_label_task(image_path):
         return result
         
     except Exception as e:
-        logger.error(f"OCR task error: {str(e)}")
+        logger.exception(f"OCR task error: {str(e)}")
         return {
             'success': False,
             'error': str(e),
