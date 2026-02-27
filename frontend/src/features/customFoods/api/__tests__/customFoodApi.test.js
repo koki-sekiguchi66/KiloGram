@@ -1,0 +1,81 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('@/lib/axios', () => ({
+  apiClient: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
+
+import { customFoodApi } from '@/features/customFoods/api/customFoodApi';
+import { apiClient } from '@/lib/axios';
+
+describe('customFoodApi', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('getCustomFoods', () => {
+    it('Myアイテム一覧を取得できること', async () => {
+      const mockFoods = [{ id: 1, name: '自作プロテインバー' }];
+      apiClient.get.mockResolvedValue({ data: mockFoods });
+
+      const result = await customFoodApi.getCustomFoods();
+
+      expect(apiClient.get).toHaveBeenCalledWith('/foods/custom/');
+      expect(result).toEqual(mockFoods);
+    });
+  });
+
+  describe('createCustomFood', () => {
+    it('Myアイテムを作成', async () => {
+      const newFood = { name: '新食品', calories_per_100g: 200 };
+      apiClient.post.mockResolvedValue({ data: { id: 10, ...newFood } });
+
+      const result = await customFoodApi.createCustomFood(newFood);
+
+      expect(apiClient.post).toHaveBeenCalledWith('/foods/custom/', newFood);
+      expect(result.id).toBe(10);
+    });
+  });
+
+  describe('updateCustomFood', () => {
+    it('指定IDのMyアイテムを更新', async () => {
+      const updated = { id: 5, name: '更新食品' };
+      apiClient.put.mockResolvedValue({ data: updated });
+
+      const result = await customFoodApi.updateCustomFood(5, { name: '更新食品' });
+
+      expect(apiClient.put).toHaveBeenCalledWith('/foods/custom/5/', { name: '更新食品' });
+      expect(result.name).toBe('更新食品');
+    });
+  });
+
+  describe('deleteCustomFood', () => {
+    it('指定IDのカスタム食品を削除', async () => {
+      apiClient.delete.mockResolvedValue({});
+
+      await customFoodApi.deleteCustomFood(5);
+
+      expect(apiClient.delete).toHaveBeenCalledWith('/foods/custom/5/delete/');
+    });
+  });
+
+  describe('エラーハンドリング', () => {
+    it('ネットワークエラー時', async () => {
+      apiClient.get.mockRejectedValue(new Error('Network Error'));
+
+      await expect(customFoodApi.getCustomFoods()).rejects.toThrow('Network Error');
+    });
+
+    it('バリデーションエラー時', async () => {
+      const error = new Error('Bad Request');
+      error.response = { status: 400, data: { name: ['この食品名は既に存在します。'] } };
+      apiClient.post.mockRejectedValue(error);
+
+      await expect(customFoodApi.createCustomFood({ name: '' })).rejects.toThrow('Bad Request');
+    });
+  });
+});
