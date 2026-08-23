@@ -263,9 +263,14 @@ def weight_records(user):
 
 @pytest.fixture
 def cafeteria_menus(db):
-    """テスト用食堂メニュー"""
+    """テスト用食堂メニュー
+
+    menu_id は unique 制約があるため、必ず個別の値を与えること
+    （省略すると空文字が重複して2件目の作成が落ちる）。
+    """
     menus = []
     menus.append(CafeteriaMenu.objects.create(
+        menu_id='TESTCAFE001',
         name='チキンカツ定食',
         category='main',
         calories=750,
@@ -274,6 +279,7 @@ def cafeteria_menus(db):
         carbohydrates=90,
     ))
     menus.append(CafeteriaMenu.objects.create(
+        menu_id='TESTCAFE002',
         name='サラダセット',
         category='side',
         calories=150,
@@ -282,6 +288,7 @@ def cafeteria_menus(db):
         carbohydrates=15,
     ))
     menus.append(CafeteriaMenu.objects.create(
+        menu_id='TESTCAFE003',
         name='カレーライス',
         category='rice',
         calories=680,

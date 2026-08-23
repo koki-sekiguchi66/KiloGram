@@ -1,6 +1,11 @@
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.contrib.postgres.search import TrigramSimilarity
 from ..models import StandardFood, CustomFood
+
+# トリグラム類似度の足切り閾値。意図的に緩い（ランキングではなく候補の粗い絞り込み）。
+# 精度は後段のキーワード部分一致で担保している。ここだけを見て厳しくしないこと。
+TRIGRAM_SIMILARITY_THRESHOLD = 0.08
+
 
 class NutritionCalculatorService:
     
@@ -19,7 +24,7 @@ class NutritionCalculatorService:
             StandardFood.objects.annotate(
                 similarity=TrigramSimilarity('name', query)
             )
-            .filter(similarity__gt=0.08) 
+            .filter(similarity__gt=TRIGRAM_SIMILARITY_THRESHOLD)
         )
 
         final_query = Q()
@@ -160,3 +165,214 @@ class NutritionCalculatorService:
             vitamin_c_per_100g=food_data.get('vitamin_c_per_100g', 0),
         )
         return custom_food
+
+    # =========================================================================
+    # MCP（Claude）向けの拡張
+    #
+    # 既存メソッドは Web UI の /api/ が使っているため変更しない。
+    # MCP はユーザー単位の絞り込みと食堂メニューへの対応が必要なため、
+    # 別メソッドとして追加する。
+    # =========================================================================
+
+    def search_foods_across_sources(self, user, query, limit):
+        """標準食品・Myアイテム・食堂メニューを横断してあいまい検索する。
+
+        既存の search_foods() は標準食品しか見ず、user 引数も持たないため
+        MCP からは使えない（Myアイテムはユーザーごとに分離する必要がある）。
+
+        栄養値の意味が供給元で異なる点に注意:
+          - 標準食品 / Myアイテム: 100g あたりの値
+          - 食堂メニュー: **1食ぶんの実数値**（100g あたりではない）
+        呼び出し側が取り違えないよう nutrition_basis を必ず添える。
+        """
+        if not query:
+            return []
+
+        keyword_filter = Q()
+        for keyword in query.split():
+            keyword_filter &= Q(name__icontains=keyword)
+
+        results = []
+        results.extend(self._search_standard_foods(query, keyword_filter, limit))
+        results.extend(self._search_custom_foods(user, keyword_filter, limit))
+        results.extend(self._search_cafeteria_menus(keyword_filter, limit))
+
+        return results[:limit]
+
+    def _search_standard_foods(self, query, keyword_filter, limit):
+        """標準食品をトリグラム類似度 + キーワード一致で検索する。"""
+        foods = (
+            StandardFood.objects.annotate(similarity=TrigramSimilarity('name', query))
+            .filter(similarity__gt=TRIGRAM_SIMILARITY_THRESHOLD)
+            .filter(keyword_filter)
+            .order_by('-similarity')
+        )[:limit]
+
+        return [
+            {
+                'item_type': 'standard',
+                'item_id': food.id,
+                'name': food.name,
+                'category': food.category,
+                'nutrition_basis': 'per_100g',
+                'nutrition': self._get_nutrition_per_100g(food),
+            }
+            for food in foods
+        ]
+
+    def _search_custom_foods(self, user, keyword_filter, limit):
+        """Myアイテムを検索する。**必ずそのユーザーのものだけ**を返す。
+
+        pg_trgm の GIN インデックスは StandardFood.name にしか張られていない。
+        Myアイテムは1人あたり数十件の規模なので部分一致で十分。
+        """
+        foods = CustomFood.objects.filter(user=user).filter(keyword_filter).order_by('name')[:limit]
+
+        return [
+            {
+                'item_type': 'custom',
+                'item_id': food.id,
+                'name': food.name,
+                'category': 'Myアイテム',
+                'nutrition_basis': 'per_100g',
+                'nutrition': self._get_nutrition_per_100g(food),
+            }
+            for food in foods
+        ]
+
+    def _search_cafeteria_menus(self, keyword_filter, limit):
+        """食堂メニューを検索する。全ユーザー共通のマスタなので絞り込みは不要。"""
+        from ..models import CafeteriaMenu
+
+        menus = CafeteriaMenu.objects.filter(keyword_filter).order_by('name')[:limit]
+
+        return [
+            {
+                'item_type': 'cafeteria',
+                'item_id': menu.id,
+                'name': menu.name,
+                'category': menu.get_category_display(),
+                'nutrition_basis': 'per_serving',
+                'nutrition': self._get_nutrition_of_serving(menu),
+            }
+            for menu in menus
+        ]
+
+    def _get_nutrition_of_serving(self, menu):
+        """食堂メニューの1食ぶんの栄養素を共通形式で返す。
+
+        CafeteriaMenu は 100g あたりではなく提供1食ぶんの実数値を持つ。
+        フィールド名は記録側（MealRecordItem）と同じ命名なのでそのまま写す。
+        """
+        return {
+            'calories': menu.calories,
+            'protein': menu.protein,
+            'fat': menu.fat,
+            'carbohydrates': menu.carbohydrates,
+            'dietary_fiber': menu.dietary_fiber,
+            'sodium': menu.sodium,
+            'calcium': menu.calcium,
+            'iron': menu.iron,
+            'vitamin_a': menu.vitamin_a,
+            'vitamin_b1': menu.vitamin_b1,
+            'vitamin_b2': menu.vitamin_b2,
+            'vitamin_c': menu.vitamin_c,
+        }
+
+    def resolve_item(self, user, item_type, item_id, amount_grams, round_digits):
+        """明細1件を解決し、食品名と計算済みの栄養素を返す。
+
+        既存の calculate_nutrition_for_amount() は
+          - CustomFood を user で絞っていない（他ユーザーの食品が引けてしまう）
+          - 食堂メニューに対応していない
+          - 食品名を返さない
+        ため MCP からは使わない。
+
+        食堂メニューは Web UI（toMenuItemPayload）と同じく**分量で変倍しない**。
+        1食ぶんの実数値をそのまま記録する。値の意味が 100g あたりではないため。
+
+        見つからない場合は None を返す（呼び出し側が利用者向けの文言を組み立てる）。
+        """
+        food = self.find_item(user, item_type, item_id)
+        if food is None:
+            return None
+
+        if item_type == 'cafeteria':
+            nutrition = self._get_nutrition_of_serving(food)
+        else:
+            per_100g = self._get_nutrition_per_100g(food)
+            multiplier = amount_grams / 100
+            nutrition = {key: value * multiplier for key, value in per_100g.items()}
+
+        return {
+            'name': food.name,
+            'nutrition': {
+                key: round(value, round_digits) for key, value in nutrition.items()
+            },
+        }
+
+    def find_item(self, user, item_type, item_id):
+        """供給元の食品を1件引く。Myアイテムは必ずそのユーザーのものに限る。"""
+        from ..models import CafeteriaMenu
+
+        if item_type == 'standard':
+            return StandardFood.objects.filter(pk=item_id).first()
+        if item_type == 'custom':
+            return CustomFood.objects.filter(pk=item_id, user=user).first()
+        if item_type == 'cafeteria':
+            return CafeteriaMenu.objects.filter(pk=item_id).first()
+        return None
+
+    def get_nutrition_trend(self, user, start_date, end_date, round_digits):
+        """期間内の日別栄養素合計を返す。記録のある日だけを含む。
+
+        日ごとにクエリを撃つと期間の長さぶん N+1 になるため、
+        record_date でグループ化した集計クエリ1回で取得する。
+        """
+        from ..models import MealRecord
+
+        daily_rows = (
+            MealRecord.objects.filter(
+                user=user,
+                record_date__gte=start_date,
+                record_date__lte=end_date,
+            )
+            .values('record_date')
+            .annotate(
+                calories=Sum('calories'),
+                protein=Sum('protein'),
+                fat=Sum('fat'),
+                carbohydrates=Sum('carbohydrates'),
+            )
+            .order_by('record_date')
+        )
+
+        return [
+            {
+                'date': row['record_date'].isoformat(),
+                'calories': round(row['calories'] or 0, round_digits),
+                'protein': round(row['protein'] or 0, round_digits),
+                'fat': round(row['fat'] or 0, round_digits),
+                'carbohydrates': round(row['carbohydrates'] or 0, round_digits),
+            }
+            for row in daily_rows
+        ]
+
+    def get_weight_trend(self, user, start_date, end_date):
+        """期間内の体重記録を日付順で返す。"""
+        from ..models import WeightRecord
+
+        records = (
+            WeightRecord.objects.filter(
+                user=user,
+                record_date__gte=start_date,
+                record_date__lte=end_date,
+            )
+            .values('record_date', 'weight')
+            .order_by('record_date')
+        )
+
+        return [
+            {'date': row['record_date'].isoformat(), 'weight': row['weight']}
+            for row in records
+        ]
