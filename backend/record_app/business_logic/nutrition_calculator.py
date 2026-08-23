@@ -289,9 +289,9 @@ class NutritionCalculatorService:
         """明細1件を解決し、食品名と計算済みの栄養素を返す。
 
         既存の calculate_nutrition_for_amount() は
-          - CustomFood を user で絞っていない（他ユーザーの食品が引けてしまう）
-          - 食堂メニューに対応していない
-          - 食品名を返さない
+          - 食堂メニューに対応していない（standard / custom のみ）
+          - 食品名を返さない（記録の明細には item_name が要る）
+          - food_id が 'custom_12' のような文字列で、MCP の入力形式と合わない
         ため MCP からは使わない。
 
         食堂メニューは Web UI（toMenuItemPayload）と同じく**分量で変倍しない**。
