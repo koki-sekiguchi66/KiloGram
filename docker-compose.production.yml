@@ -43,6 +43,42 @@ services:
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
       - AZURE_VISION_ENDPOINT=${AZURE_VISION_ENDPOINT}
       - AZURE_VISION_KEY=${AZURE_VISION_KEY}
+      # OAuth のディスカバリ文書（RFC 8414 / 9728）を配信するのは backend なので、
+      # backend 側にも MCP のリソース識別子が必要
+      - MCP_RESOURCE_URL=${MCP_RESOURCE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    networks:
+      - dishboard_network
+
+  # Claude からの MCP 接続を受ける ASGI サーバ。
+  # backend と同じイメージ（同じ target）を使い command だけ差し替える。
+  # migrate は実行しない（実行主体は backend に一本化する）。
+  mcp:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    container_name: dishboard-mcp-prod
+    command: >
+      python -m uvicorn mcp_server.asgi:application
+      --host 0.0.0.0 --port 8001
+      --workers 1
+    # ホストには公開しない。nginx 経由でのみ到達させる
+    expose:
+      - "8001"
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=dishboard_project.settings.mcp
+      - DJANGO_ENV=production
+      - DEBUG=0
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - MCP_RESOURCE_URL=${MCP_RESOURCE_URL}
     depends_on:
       db:
         condition: service_healthy
@@ -68,6 +104,7 @@ services:
       - certbot_www:/var/www/certbot:ro
     depends_on:
       - backend
+      - mcp
     restart: always
     networks:
       - dishboard_network
