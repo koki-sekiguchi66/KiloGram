@@ -1,0 +1,45 @@
+{% comment %}
+OAuth 認可フロー専用のログイン画面。
+
+SPA 本体はトークン認証（DRF）でセッションを作らないため、
+Claude から /o/authorize/ に飛んできたときにだけこの画面が出る。
+アプリの UI とは独立しているので、フロントエンドのデザイン資産は参照しない。
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DishBoard にログイン</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #1f2421; color: #f4f1e8;
+           display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+    .panel { background: #2a302c; border: 2px solid #3d4640; border-radius: 8px;
+             padding: 2rem; width: min(24rem, 90vw); }
+    h1 { font-size: 1.25rem; margin: 0 0 1.5rem; }
+    label { display: block; margin-bottom: 0.25rem; font-size: 0.875rem; }
+    input { width: 100%; padding: 0.5rem; margin-bottom: 1rem; border-radius: 4px;
+            border: 1px solid #3d4640; background: #1f2421; color: inherit; box-sizing: border-box; }
+    button { width: 100%; padding: 0.625rem; border: none; border-radius: 4px;
+             background: #d9a441; color: #1f2421; font-weight: bold; cursor: pointer; }
+    .error { color: #e07a5f; font-size: 0.875rem; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>DishBoard にログイン</h1>
+    {% if form.errors %}
+      <p class="error">ユーザー名またはパスワードが正しくありません。</p>
+    {% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label for="id_username">ユーザー名</label>
+      <input type="text" name="username" id="id_username" autocomplete="username" required autofocus>
+      <label for="id_password">パスワード</label>
+      <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit">ログイン</button>
+    </form>
+  </div>
+</body>
+</html>

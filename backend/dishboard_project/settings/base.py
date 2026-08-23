@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 import dotenv
 
 dotenv.load_dotenv(os.path.join(Path(__file__).resolve().parent.parent.parent, '.env'))
@@ -21,6 +22,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'django_filters',
     'corsheaders',
+    'oauth2_provider',
 ]
 
 MIDDLEWARE = [
@@ -143,3 +145,55 @@ LOGGING = {
 # Azure AI Vision (OCR)
 AZURE_VISION_ENDPOINT = os.getenv('AZURE_VISION_ENDPOINT', '')
 AZURE_VISION_KEY = os.getenv('AZURE_VISION_KEY', '')
+
+# MCP サーバのリソース識別子（RFC 8707 の audience）。
+# Claude に登録する URL と完全一致していなければならない（パス込み）。
+MCP_RESOURCE_URL = os.getenv('MCP_RESOURCE_URL', 'http://localhost:8001/mcp')
+
+# 認可サーバの発行者識別子（issuer）。MCP リソース URL と同じオリジンを使う。
+# 明示しないと DOT は「どの URL でメタデータを引かれたか」から issuer を導出するため、
+# ルート直下（https://host）とマウント先（https://host/o）で値が食い違う。
+# RFC 9207 の iss 検証は両者の完全一致を要求するので、ここで1つに固定する。
+OAUTH2_ISSUER_URL = urlsplit(MCP_RESOURCE_URL)._replace(path='', query='', fragment='').geturl()
+
+# OAuth 2.1 認可サーバ（django-oauth-toolkit）
+# Claude からの MCP 接続のためだけに使う。既存の /api/ は DRF の
+# TokenAuthentication のままで、この設定の影響を受けない。
+OAUTH2_PROVIDER = {
+    # スコープは用途ごとに分ける。同意画面でユーザーが範囲を確認できることが目的
+    'SCOPES': {
+        'meals:read': '食事記録の閲覧・栄養分析・食品検索',
+        'meals:write': '食事記録の新規作成・編集',
+        'weight:read': '体重記録の閲覧',
+    },
+    # 何も要求されなかった場合は読み取りだけ許す（最小権限）
+    'DEFAULT_SCOPES': ['meals:read'],
+
+    # Claude は毎回 S256 の PKCE を送る。既定値だが、要件なので明示する
+    'PKCE_REQUIRED': True,
+
+    # Claude が接続のたびにクライアントを自動登録する（RFC 7591）。
+    # 研究室内の利用者に client_id を配布して回る手間をなくすための選択。
+    # 登録が増え続けるため、Application テーブルは定期的に確認すること
+    'DCR_ENABLED': True,
+
+    # PRM（RFC 9728）が広告する resource。空だとリクエスト URL から導出されるが、
+    # nginx 越しでは MCP サーバ自身の URL にならないため明示する
+    'OAUTH2_PROTECTED_RESOURCE_IDENTIFIER': MCP_RESOURCE_URL,
+
+    # PRM が指す認可サーバと、AS メタデータ／iss パラメータの issuer を一致させる。
+    # Claude は authorization_servers の**先頭要素しか見ない**（フォールバックしない）
+    'OAUTH2_PROTECTED_RESOURCE_AUTHORIZATION_SERVERS': [OAUTH2_ISSUER_URL],
+    'OIDC_ISS_ENDPOINT': OAUTH2_ISSUER_URL,
+
+    # 公開クライアント（DCR で登録される Claude）向けにリフレッシュトークンを
+    # 使い回させない。MCP 認可仕様が OAuth 2.1 から引き継いでいる要件
+    'ROTATE_REFRESH_TOKEN': True,
+    'REFRESH_TOKEN_REUSE_PROTECTION': True,
+}
+
+# OAuth の認可画面は「Django にログイン済みであること」を要求する。
+# 既存の SPA はトークン認証でセッションを作らないため、認可フロー専用に
+# Django 標準のログイン画面を用意する（django.contrib.auth.urls）。
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/accounts/login/'

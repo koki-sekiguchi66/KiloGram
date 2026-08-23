@@ -41,6 +41,13 @@ wcwidth==0.2.14
 gunicorn==23.0.0
 whitenoise==6.8.2
 
+# MCP サーバ（Claude からの接続。3番目の入口）
+# mcp 1.29.0 はプロトコル 2025-11-25 を話す。Claude の認可仕様の対応上限に合わせている
+# （2.0.0 = 2026-07-28 のステートレス仕様は Claude 側が未対応のため採用しない）
+django-oauth-toolkit==3.4.1
+mcp==1.29.0
+uvicorn==0.52.4
+
 
 
 
