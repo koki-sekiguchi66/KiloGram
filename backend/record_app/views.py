@@ -350,7 +350,9 @@ def calculate_nutrition(request):
         return Response({'error': 'food_idが必要です'}, status=400)
     try:
         calculator = NutritionCalculatorService()
-        nutrition = calculator.calculate_nutrition_for_amount(food_id, float(amount))
+        nutrition = calculator.calculate_nutrition_for_amount(
+            request.user, food_id, float(amount)
+        )
         return Response({'nutrition': nutrition, 'amount': amount})
     except ValueError as e:
         return Response({'error': str(e)}, status=400)

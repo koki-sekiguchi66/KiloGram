@@ -79,15 +79,21 @@ class NutritionCalculatorService:
             'vitamin_c': food.vitamin_c_per_100g,
         }
     
-    def calculate_nutrition_for_amount(self, food_id, amount_grams):
-        """指定された量の栄養素を計算"""
+    def calculate_nutrition_for_amount(self, user, food_id, amount_grams):
+        """指定された量の栄養素を計算
+
+        Myアイテム（custom）は**必ず user で絞る**。
+        food_id は呼び出し元から渡される任意の値であり、絞らないと
+        他ユーザーの Myアイテムの栄養値を読み出せてしまう。
+        標準食品は全ユーザー共通のマスタなので絞り込みの対象外。
+        """
         try:
             food_type, food_pk = food_id.split('_', 1)
-            
+
             if food_type == 'standard':
                 food = StandardFood.objects.get(pk=food_pk)
             elif food_type == 'custom':
-                food = CustomFood.objects.get(pk=food_pk)
+                food = CustomFood.objects.get(pk=food_pk, user=user)
             else:
                 raise ValueError(f"不正な食品タイプ: {food_type}")
             

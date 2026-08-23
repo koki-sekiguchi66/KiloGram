@@ -32,24 +32,24 @@ class TestNutritionCalculatorService:
         assert 'type' in first
         assert 'nutrition' in first
 
-    def test_calculate_nutrition_for_amount(self, standard_foods):
+    def test_calculate_nutrition_for_amount(self, user, standard_foods):
         """指定量での栄養素計算が正しいこと"""
         calculator = NutritionCalculatorService()
         food = standard_foods[0]  
 
         result = calculator.calculate_nutrition_for_amount(
-            f'standard_{food.id}', 200  
+            user, f'standard_{food.id}', 200  
         )
 
         assert result['calories'] == pytest.approx(712.0, rel=0.01)
         assert result['protein'] == pytest.approx(12.2, rel=0.01)
 
-    def test_calculate_nutrition_invalid_food_id(self, standard_foods):
+    def test_calculate_nutrition_invalid_food_id(self, user, standard_foods):
         """不正な食品IDでValueErrorが発生すること"""
         calculator = NutritionCalculatorService()
 
         with pytest.raises(ValueError):
-            calculator.calculate_nutrition_for_amount('invalid_999', 100)
+            calculator.calculate_nutrition_for_amount(user, 'invalid_999', 100)
 
     def test_get_food_suggestions(self, standard_foods):
         """食品サジェストが文字列のリストで返ること"""
@@ -102,7 +102,7 @@ class TestNutritionCalculatorService:
         """カスタム食品の栄養計算が動作すること"""
         calculator = NutritionCalculatorService()
         result = calculator.calculate_nutrition_for_amount(
-            f'custom_{custom_food.id}', 50
+            user, f'custom_{custom_food.id}', 50
         )
 
         assert result['calories'] == pytest.approx(200.0, rel=0.01)
