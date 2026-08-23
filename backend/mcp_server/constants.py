@@ -30,9 +30,9 @@ MAX_AMOUNT_GRAMS = 10000
 # 一覧系ツールが返す最大件数
 MAX_LIST_RECORDS = 100
 
-# 文字列長。対応するモデルフィールドの max_length に合わせる
-MAX_MEAL_NAME_LENGTH = 100      # MealRecord.meal_name
-MAX_ITEM_NAME_LENGTH = 200      # MealRecordItem.item_name
+# 食事名の長さ。MealRecord.meal_name の max_length に合わせる。
+# 明細の item_name は利用者入力ではなく食品マスタから引くため、上限は設けない
+MAX_MEAL_NAME_LENGTH = 100
 
 
 # --- レート制限 -------------------------------------------------------------
@@ -68,21 +68,9 @@ DETAIL_NUTRIENT_KEYS = (
     'vitamin_c',
 )
 
-# 栄養素の単位。ツールの description に載せて Claude に解釈させる
-NUTRIENT_UNITS = {
-    'calories': 'kcal',
-    'protein': 'g',
-    'fat': 'g',
-    'carbohydrates': 'g',
-    'dietary_fiber': 'g',
-    'sodium': 'mg',
-    'calcium': 'mg',
-    'iron': 'mg',
-    'vitamin_a': 'ug',
-    'vitamin_b1': 'mg',
-    'vitamin_b2': 'mg',
-    'vitamin_c': 'mg',
-}
+# 栄養素の単位は server.py の _UNITS でツールの description に載せている。
+# 12件を1件ずつ列挙すると description が冗長になるため、同じ単位のものを
+# まとめた文章として持たせており、定数表とは二重に持たない
 
 # 丸めの桁数。栄養値の有効数字として小数2桁あれば足りる
 NUTRIENT_ROUND_DIGITS = 2
