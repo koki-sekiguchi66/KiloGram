@@ -19,6 +19,32 @@ record_app/
 - `services.py` は「複数モデルを1トランザクションで操作する」ものだけ。単一モデルの CRUD は ViewSet で足りる
 - ViewSet は必ず `get_queryset()` で `filter(user=self.request.user)` する（ユーザー間のデータ分離）
 
+## MCP 層（`mcp_server/`）
+
+Claude からの3番目の入口。Django アプリではない（モデルを持たない）。
+
+```
+mcp_server/
+  constants.py     上限値・スコープ名。マジックナンバーはすべてここ
+  auth.py          アクセストークンの検証（DOT の AccessToken を直接参照）
+  context.py       トークン → Django ユーザーの解決とスコープ検査
+  validators.py    入力の検証
+  formatters.py    モデル → ツール返り値の変換
+  tools.py         ツール本体（T1〜T8）
+  server.py        FastMCP の組み立てとツール登録
+  asgi.py          uvicorn のエントリポイント
+```
+
+- **MCP 層にドメインロジックを書かない。** 計算・検索・集計は `business_logic/` に置く
+- ツールは必ず `context.resolve_user()` でユーザーを解決し、以降のクエリをそのユーザーで絞る。
+  ここを迂回すると他ユーザーのデータが見える
+- 他ユーザーのリソースを指定されたら `NotFoundError`（404 相当）。403 だと存在が漏れる
+- ツールは FastMCP のデコレータを付けず素の関数にする。登録は `server.py` の `add_tool()` で行う
+  （テストからトランスポートを起動せずに直接呼べるようにするため）
+- `django_setup.py` を import 時に呼ばない。呼ぶのは `asgi.py` だけ
+- ツールの description は **Claude が読む唯一の仕様書**。単位・副作用の有無・日付形式を必ず書く
+- 既存の `/api/` 向けメソッドを MCP のために書き換えない。必要なら別メソッドを足す
+
 ## 栄養データのスナップショット設計 ★壊さないこと
 
 `MealRecordItem` / `CustomMenuItem` は、栄養値を**記録時点の実数値としてそのまま保存**する。

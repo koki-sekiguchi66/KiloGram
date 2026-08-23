@@ -11,6 +11,7 @@
 ## ディレクトリ
 
 - `backend/` — Django / DRF。層構造とデータ設計の規約は `backend/CLAUDE.md`
+- `backend/mcp_server/` — Claude から接続する MCP サーバ（別プロセス）。規約は `backend/CLAUDE.md`
 - `frontend/` — React + TypeScript + Vite。features 構成と規約は `frontend/CLAUDE.md`
 - `nginx/conf.d/` — 本番の同一オリジン配信設定（開発では使わない）
 - `.github/workflows/` — 週次の学食スクレイピング（cron → SSH → 管理コマンド）
@@ -18,9 +19,10 @@
 ## コマンド
 
 ```bash
-# 開発環境（db + backend + frontend）
+# 開発環境（db + backend + mcp + frontend）
 docker compose up -d
 docker compose logs -f backend
+docker compose logs -f mcp        # MCP サーバ（localhost:8001/mcp）
 
 # バックエンドのテスト（PostgreSQL 必須。SQLite では動かない）
 docker compose up -d db

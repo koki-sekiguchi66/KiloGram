@@ -42,30 +42,41 @@
 
 ## 3. システム構成
 
+アプリケーションへの入口は3つある。3つとも最終的に同じ `business_logic/` を通る。
+
 ```
-                      ┌─────────────────────────────┐
-   ブラウザ / PWA ───▶ │ nginx                       │
-                      │  /       → SPA の静的ファイル │
-                      │  /api/   → Django へプロキシ  │
-                      └───────────┬─────────────────┘
-                                  │
-                      ┌───────────▼─────────────────┐
-                      │ Django + DRF (gunicorn)     │
-                      │  views → services →         │
-                      │          business_logic     │
-                      └───────┬──────────────┬──────┘
-                              │              │
-                   ┌──────────▼──────┐   ┌───▼─────────────────┐
-                   │ PostgreSQL 16   │   │ Azure AI Vision     │
-                   │ (+ pg_trgm)     │   │ (Read API / OCR)    │
-                   └─────────────────┘   └─────────────────────┘
-                              ▲
-                   ┌──────────┴──────────────────────┐
+                      ┌──────────────────────────────────────────┐
+   ブラウザ / PWA ───▶ │ nginx                                    │
+                      │  /            → SPA の静的ファイル         │
+   Claude ──────────▶ │  /api/        → Django へプロキシ          │
+                      │  /o/          → Django（OAuth 認可）       │
+                      │  /.well-known/*→ Django（メタデータ）       │
+                      │  /mcp         → MCP サーバへプロキシ        │
+                      └────────┬────────────────────┬────────────┘
+                               │                    │
+             ┌─────────────────▼──────┐   ┌─────────▼──────────────┐
+             │ Django + DRF (gunicorn)│   │ MCP サーバ (uvicorn)    │
+             │  views → services →    │   │  tools →               │
+             │          business_logic│   │    business_logic      │
+             └───────┬──────────┬─────┘   └─────────┬──────────────┘
+                     │          │                   │
+          ┌──────────▼──────┐ ┌─▼───────────────────▼─┐
+          │ Azure AI Vision │ │ PostgreSQL 16         │
+          │ (Read API / OCR)│ │ (+ pg_trgm)           │
+          └─────────────────┘ └───────────▲───────────┘
+                                          │
+                   ┌──────────────────────┴──────────┐
                    │ GitHub Actions (週次 cron)       │
                    │  SSH → manage.py                │
                    │        update_cafeteria_menus   │
                    └─────────────────────────────────┘
 ```
+
+| # | 入口 | 経路 |
+|---|---|---|
+| 1 | Web (PWA) | nginx → Gunicorn/WSGI → `views.py` |
+| 2 | 外部スケジューラ | GitHub Actions → SSH → `manage.py <command>` |
+| 3 | AI (Claude) | Claude → nginx → uvicorn/MCP → `tools.py` |
 
 **フロントとバックエンドを同一オリジンで配信している**のが構成上の要点である。
 nginx が `/` で SPA を、`/api/` で Django をプロキシするため、ブラウザから見れば単一のオリジンになる。
@@ -74,6 +85,10 @@ nginx が `/` で SPA を、`/api/` で Django をプロキシするため、ブ
 
 非同期ワーカー（Celery 等）は使っていない。定期実行が必要な処理は Django の管理コマンドとして実装し、
 外部スケジューラ（GitHub Actions）から呼び出す（→ [decisions.md #9](docs-public/decisions.md)）。
+
+MCP サーバは Django アプリと**同じイメージ**を使い、`command` だけを uvicorn に差し替えた別コンテナである。
+Django を直接 import するため、既存の `/api/` の実行モデル（WSGI）には一切手を入れていない
+（→ [decisions.md #22](docs-public/decisions.md), [#23](docs-public/decisions.md)）。
 
 ---
 
@@ -294,6 +309,21 @@ Docker Compose を動かしている（構築手順は `.claude/skills/deploy/SK
 - 常駐プロセスを増やさない（Celery ワーカーやメッセージブローカーを置かない）
 - 重い処理は外部サービス（Azure AI Vision）と外部スケジューラ（GitHub Actions）に逃がす
 - 静的ファイルは CDN を使わず nginx から直接配信する
+
+**この方針からの唯一の逸脱が MCP サーバ（uvicorn）である。**
+`docker stats` による実測（production ステージ・アイドル時）は次のとおり。
+
+| プロセス | メモリ |
+|---|---|
+| nginx | 約 3.9 MB |
+| Django (Gunicorn) | 約 62 MB |
+| PostgreSQL 16 | 約 20 MB |
+| **MCP (uvicorn)** | **66.8 MB** |
+| 合計 | **約 150 MB** |
+
+1GB に対して余裕があることを確認したうえで受容した判断である
+（→ [decisions.md #22](docs-public/decisions.md)）。
+常駐プロセスをさらに増やす場合は、同じように実測してから決めること。
 
 「一般的なベストプラクティス」よりも、**このアプリの実際の利用規模（10〜20名）と
 実行環境に照らして意味があるか**を優先している。
