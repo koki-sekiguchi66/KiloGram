@@ -362,3 +362,123 @@ def other_custom_menu(other_user):
     menu.calculate_totals()
     menu.save()
     return menu
+
+# =============================================================================
+# MCP / OAuth フィクスチャ
+# =============================================================================
+
+MCP_RESOURCE_URL = 'https://testserver.example/mcp'
+ALL_MCP_SCOPES = 'meals:read meals:write weight:read'
+
+
+@pytest.fixture
+def oauth_application(db):
+    """MCP クライアント（Claude 相当）を表す OAuth Application。"""
+    from oauth2_provider.models import get_application_model
+
+    Application = get_application_model()
+    return Application.objects.create(
+        name='テスト用 MCP クライアント',
+        client_type=Application.CLIENT_PUBLIC,
+        authorization_grant_type=Application.GRANT_AUTHORIZATION_CODE,
+        redirect_uris='https://claude.ai/api/mcp/auth_callback',
+    )
+
+
+@pytest.fixture
+def make_access_token(oauth_application):
+    """アクセストークンを組み立てるファクトリ。
+
+    テストごとに user / scope / 期限 / audience を差し替えられるようにする。
+    トークン文字列はテストから見えている必要があるため、生の値を一緒に返す。
+    """
+    from datetime import timedelta
+
+    from django.utils import timezone
+    from oauth2_provider.models import get_access_token_model
+
+    AccessToken = get_access_token_model()
+    counter = {'n': 0}
+
+    def _make(user, scope=ALL_MCP_SCOPES, expires_in_seconds=3600,
+              resource=(MCP_RESOURCE_URL,)):
+        counter['n'] += 1
+        raw_token = f'test-access-token-{counter["n"]}'
+        AccessToken.objects.create(
+            user=user,
+            application=oauth_application,
+            token=raw_token,
+            scope=scope,
+            expires=timezone.now() + timedelta(seconds=expires_in_seconds),
+            resource=list(resource),
+        )
+        return raw_token
+
+    return _make
+
+
+@pytest.fixture
+def mcp_token(user, make_access_token):
+    """全スコープを持つ有効なトークン。"""
+    return make_access_token(user)
+
+
+@pytest.fixture
+def other_mcp_token(other_user, make_access_token):
+    """別ユーザーの有効なトークン。データ分離テスト用。"""
+    return make_access_token(other_user)
+
+
+@pytest.fixture
+def token_verifier():
+    """テスト対象のトークン検証器。"""
+    from mcp_server.auth import DjangoAccessTokenVerifier
+
+    return DjangoAccessTokenVerifier(MCP_RESOURCE_URL)
+
+
+@pytest.fixture
+def run_async():
+    """async なツール関数を同期テストから呼ぶ。
+
+    pytest-asyncio を増やさずに済ませるため、Django が依存している
+    asgiref の async_to_sync を使う。contextvars は双方向に伝播するので、
+    テスト側で設定した MCP の認証コンテキストがツールからも見える。
+    """
+    from asgiref.sync import async_to_sync
+
+    def _run(coroutine_function, *args, **kwargs):
+        return async_to_sync(coroutine_function)(*args, **kwargs)
+
+    return _run
+
+
+@pytest.fixture
+def mcp_auth_context():
+    """MCP の認証コンテキスト（アクセストークン）を差し込む with ブロック。
+
+    SDK のミドルウェアが本番で行うのと同じ ContextVar への設定を、
+    トランスポートを起動せずに再現する。
+    """
+    import contextlib
+
+    from mcp.server.auth.middleware.auth_context import auth_context_var
+    from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
+    from mcp.server.auth.provider import AccessToken as MCPAccessToken
+
+    @contextlib.contextmanager
+    def _context(user, scopes=None):
+        access_token = MCPAccessToken(
+            token='test-token',
+            client_id='test-client',
+            scopes=list(scopes) if scopes is not None else ALL_MCP_SCOPES.split(),
+            resource=MCP_RESOURCE_URL,
+            subject=str(user.id),
+        )
+        reset_token = auth_context_var.set(AuthenticatedUser(access_token))
+        try:
+            yield access_token
+        finally:
+            auth_context_var.reset(reset_token)
+
+    return _context
