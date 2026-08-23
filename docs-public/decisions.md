@@ -890,3 +890,5 @@ Claude はユーザーの発話を解釈して操作を選ぶ。解釈を誤る�
 | `prefers-color-scheme` 未対応 | OS のテーマ設定に追従しない（#14 参照） |
 | 明細更新の全置換 | 食事記録の明細更新は全削除・再作成。件数が増えると非効率になるが、現状の1食あたり数件では問題にならない |
 | Myメニュー一覧の件数取得 | `CustomMenuListSerializer.get_items_count` が `obj.items.count()` を呼ぶ。`prefetch_related` のキャッシュは `count()` では使われないため、一覧の行数だけ COUNT クエリが出る。`len(obj.items.all())` に変えれば解消する |
+| pg_trgm の GIN インデックスが使われていない | 食品検索は `similarity(name, q) > 閾値` で絞っているが、この形では GIN インデックスは効かず Seq Scan になる（インデックスが効くのは `%` 演算子）。標準食品2537件で `EXPLAIN ANALYZE` 実行時間 1.5ms のため実害はないが、`name % q` に書き換えれば索引が使える。件数が桁で増えたら見直す |
+| MCP 経由の記録を識別できない | `MealRecord` に `source`（web / ocr / mcp）を持たせていないため、どの入口から作られた記録か後から分からない（#24 参照） |
