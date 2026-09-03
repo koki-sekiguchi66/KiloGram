@@ -177,6 +177,13 @@ OAUTH2_PROVIDER = {
     # 登録が増え続けるため、Application テーブルは定期的に確認すること
     'DCR_ENABLED': True,
 
+    # DOT は既定で DCR にも Django セッションログインを要求する
+    # （IsAuthenticatedDCRPermission）。Claude は未ログインの匿名リクエストとして
+    # クライアント登録を行うため、既定のままだと登録自体が401で拒否され、
+    # ログイン画面にすら到達できない。DCR_ENABLED の意図（匿名の動的登録）を
+    # 実現するには、この匿名許可を明示する必要がある
+    'DCR_REGISTRATION_PERMISSION_CLASSES': ('oauth2_provider.dcr.AllowAllDCRPermission',),
+
     # PRM（RFC 9728）が広告する resource。空だとリクエスト URL から導出されるが、
     # nginx 越しでは MCP サーバ自身の URL にならないため明示する
     'OAUTH2_PROTECTED_RESOURCE_IDENTIFIER': MCP_RESOURCE_URL,
