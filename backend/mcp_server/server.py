@@ -7,9 +7,11 @@
   - 日付の形式（相対日付を解釈しないこと）
 """
 import logging
+from urllib.parse import urlsplit
 
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 from . import tools
 from .auth import DjangoAccessTokenVerifier
@@ -48,6 +50,8 @@ def build_server(resource_url, issuer_url):
                   Claude に登録する URL と完全一致していなければならない。
     issuer_url:   OAuth 認可サーバの issuer（settings.OAUTH2_ISSUER_URL）。
     """
+    resource_host = urlsplit(resource_url).netloc
+
     server = FastMCP(
         name=SERVER_NAME,
         instructions=(
@@ -62,6 +66,16 @@ def build_server(resource_url, issuer_url):
             # ここはエンドポイント全体に対する最小要件。
             # ツールごとの要求スコープは tools 側で個別に検査する
             required_scopes=[],
+        ),
+        # FastMCP は host 未指定時、既定値の "127.0.0.1" を見て DNS rebinding
+        # 対策を自動有効化し、allowed_hosts を 127.0.0.1/localhost に限定する。
+        # nginx 経由で来る本番リクエストの Host は実際のドメインなので、
+        # 自動設定のままだと全リクエストが421(Invalid Host header)で拒否される。
+        # 対策自体は有効にしたまま、許可ホストを実際のリソースURLから明示する
+        transport_security=TransportSecuritySettings(
+            enable_dns_rebinding_protection=True,
+            allowed_hosts=[resource_host],
+            allowed_origins=[f'{urlsplit(resource_url).scheme}://{resource_host}'],
         ),
         # ステートレスに動かす。セッションを持たないので、
         # プロセス再起動やスケールアウトで接続が壊れない
