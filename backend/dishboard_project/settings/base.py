@@ -6,6 +6,9 @@ import dotenv
 dotenv.load_dotenv(os.path.join(Path(__file__).resolve().parent.parent.parent, '.env'))
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+LOG_DIR = BASE_DIR / 'logs'
+# 新規環境でもロギング初期化がテストや管理コマンドより先に失敗しないようにする。
+LOG_DIR.mkdir(exist_ok=True)
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
@@ -118,7 +121,7 @@ LOGGING = {
         },
         'file': {
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+            'filename': LOG_DIR / 'django.log',
             'maxBytes': 1024 * 1024 * 10,  # 10MB
             'backupCount': 5,
             'formatter': 'verbose',
@@ -145,6 +148,9 @@ LOGGING = {
 # Azure AI Vision (OCR)
 AZURE_VISION_ENDPOINT = os.getenv('AZURE_VISION_ENDPOINT', '')
 AZURE_VISION_KEY = os.getenv('AZURE_VISION_KEY', '')
+
+# Google Identity Services。未設定時はGoogleログインを無効化する。
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
 
 # MCP サーバのリソース識別子（RFC 8707 の audience）。
 # Claude に登録する URL と完全一致していなければならない（パス込み）。

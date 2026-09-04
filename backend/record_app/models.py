@@ -141,6 +141,18 @@ class WeightRecord(models.Model):
         ]
 
 
+class GoogleAccount(models.Model):
+    """DishBoardユーザーに明示的に連携されたGoogleアカウント。"""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='google_account')
+    subject = models.CharField(max_length=255, unique=True)
+    email = models.EmailField()
+    linked_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.user.username} - {self.email}'
+
+
 class StandardFood(models.Model):
     """文科省食品標準成分表の食品情報"""
 

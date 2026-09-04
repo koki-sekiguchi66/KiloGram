@@ -4,7 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { DateSelector } from '../DateSelector';
 
 describe('DateSelector', () => {
-  const today = new Date().toISOString().split('T')[0];
+  const d = new Date();
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
   it('選択日付が日本語形式で表示される', () => {
     render(<DateSelector selectedDate="2026-03-04" onDateChange={vi.fn()} />);

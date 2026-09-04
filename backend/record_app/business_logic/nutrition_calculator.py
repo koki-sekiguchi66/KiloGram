@@ -1,3 +1,4 @@
+from django.db import connection
 from django.db.models import Q, Sum
 from django.contrib.postgres.search import TrigramSimilarity
 from ..models import StandardFood, CustomFood
@@ -8,6 +9,22 @@ TRIGRAM_SIMILARITY_THRESHOLD = 0.08
 
 
 class NutritionCalculatorService:
+
+    @staticmethod
+    def _standard_food_candidates(query, keyword_filter):
+        """本番はpg_trgm、SQLiteのローカルテストは部分一致で候補を返す。
+
+        SQLiteへ本番検索を移植する意図はない。開発設定がDB未指定時にSQLiteへ
+        フォールバックするため、PostgreSQL固有関数で全テストが停止しないようにする。
+        """
+        if connection.vendor != 'postgresql':
+            return StandardFood.objects.filter(keyword_filter).order_by('name')
+        return (
+            StandardFood.objects.annotate(similarity=TrigramSimilarity('name', query))
+            .filter(similarity__gt=TRIGRAM_SIMILARITY_THRESHOLD)
+            .filter(keyword_filter)
+            .order_by('-similarity')
+        )
     
     def search_foods(self, query):
         """食品名であいまい検索する。
@@ -20,20 +37,12 @@ class NutritionCalculatorService:
         
         results = []
         keywords = query.split()
-        initial_candidates = (
-            StandardFood.objects.annotate(
-                similarity=TrigramSimilarity('name', query)
-            )
-            .filter(similarity__gt=TRIGRAM_SIMILARITY_THRESHOLD)
-        )
-
         final_query = Q()
         for keyword in keywords:
             final_query &= Q(name__icontains=keyword)
         
         standard_foods = (
-            initial_candidates.filter(final_query)
-            .order_by('-similarity') 
+            self._standard_food_candidates(query, final_query)
         )[:10]
         
         for food in standard_foods:
@@ -207,12 +216,7 @@ class NutritionCalculatorService:
 
     def _search_standard_foods(self, query, keyword_filter, limit):
         """標準食品をトリグラム類似度 + キーワード一致で検索する。"""
-        foods = (
-            StandardFood.objects.annotate(similarity=TrigramSimilarity('name', query))
-            .filter(similarity__gt=TRIGRAM_SIMILARITY_THRESHOLD)
-            .filter(keyword_filter)
-            .order_by('-similarity')
-        )[:limit]
+        foods = self._standard_food_candidates(query, keyword_filter)[:limit]
 
         return [
             {

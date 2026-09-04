@@ -97,6 +97,7 @@ services:
       target: production
       args:
         VITE_API_BASE_URL: /api
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     image: dishboard-nginx-prod
     container_name: dishboard-nginx-prod
     ports:

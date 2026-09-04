@@ -7,7 +7,7 @@ from .views import (
     CustomMenuViewSet,
     search_foods, food_suggestions, calculate_nutrition,
     daily_nutrition_summary, list_cafeteria_menus, health_check,
-    process_nutrition_label,
+    process_nutrition_label, GoogleLoginView, GoogleLinkView,
 )
 
 router = DefaultRouter()
@@ -22,6 +22,8 @@ urlpatterns = [
     path('', include(router.urls)),
     path('register/', UserRegistrationView.as_view(), name='register'),
     path('login/', obtain_auth_token, name='login'),
+    path('auth/google/', GoogleLoginView.as_view(), name='google-login'),
+    path('auth/google/link/', GoogleLinkView.as_view(), name='google-link'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('profile/', UserProfileView.as_view(), name='profile'),
     path('foods/search/', search_foods, name='search-foods'),

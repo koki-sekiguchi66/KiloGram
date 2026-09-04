@@ -1,5 +1,6 @@
 import { useGreeting } from "../hooks/useGreeting";
 import { Mascot } from "./Mascot";
+import { getLocalDateString } from "@/lib/date";
 
 /**
  * 記録ページのヒーロー部（黒板パネル）。
@@ -7,7 +8,9 @@ import { Mascot } from "./Mascot";
  * マスコット・挨拶・見出しをまとめて1枚の黒板として表現する場所のため、
  * 見出し（今日の献立）もここに含めている。
  */
-export function CharacterGreeting() {
+interface CharacterGreetingProps { selectedDate: string; }
+
+export function CharacterGreeting({ selectedDate }: CharacterGreetingProps) {
   const { emoji, message } = useGreeting();
   const mood = emoji === "🌙" ? "sleepy" : "normal";
 
@@ -27,7 +30,11 @@ export function CharacterGreeting() {
       </div>
 
       <div className="mt-4">
-        <h2 className="text-lg font-bold text-board-foreground">今日の献立</h2>
+        <h2 className="text-lg font-bold text-board-foreground">
+          {selectedDate === getLocalDateString()
+            ? "今日の献立"
+            : `${new Date(`${selectedDate}T00:00:00`).getMonth() + 1}月${new Date(`${selectedDate}T00:00:00`).getDate()}日の献立`}
+        </h2>
         <svg
           className="mt-0.5 h-2 w-40 text-board-muted"
           viewBox="0 0 168 8"

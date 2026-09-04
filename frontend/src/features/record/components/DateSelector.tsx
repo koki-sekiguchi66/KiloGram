@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getLocalDateString } from "@/lib/date";
 
 interface DateSelectorProps {
   selectedDate: string; // "YYYY-MM-DD"
@@ -26,7 +27,7 @@ function shiftDate(dateStr: string, days: number): string {
 }
 
 export function DateSelector({ selectedDate, onDateChange }: DateSelectorProps) {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalDateString();
   const isToday = selectedDate === today;
 
   return (
