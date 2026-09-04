@@ -150,11 +150,20 @@ AZURE_VISION_KEY = os.getenv('AZURE_VISION_KEY', '')
 # Claude に登録する URL と完全一致していなければならない（パス込み）。
 MCP_RESOURCE_URL = os.getenv('MCP_RESOURCE_URL', 'http://localhost:8001/mcp')
 
-# 認可サーバの発行者識別子（issuer）。MCP リソース URL と同じオリジンを使う。
+# 認可サーバの発行者識別子（issuer）。
 # 明示しないと DOT は「どの URL でメタデータを引かれたか」から issuer を導出するため、
 # ルート直下（https://host）とマウント先（https://host/o）で値が食い違う。
 # RFC 9207 の iss 検証は両者の完全一致を要求するので、ここで1つに固定する。
-OAUTH2_ISSUER_URL = urlsplit(MCP_RESOURCE_URL)._replace(path='', query='', fragment='').geturl()
+#
+# 既定値は MCP リソース URL と同じオリジンだが、環境変数で独立に上書きできる。
+# 本番では PWA を配信しているオリジンと**別のサブドメイン**を指定する（ADR #26）。
+# 同一オリジンで OAuth のログイン画面（/accounts/ /o/authorize/）を提供すると、
+# Android が「インストール済み PWA へのリンク横取り」を発動し、スマホの Claude
+# アプリからログイン画面に到達できなくなるため
+OAUTH2_ISSUER_URL = os.getenv(
+    'OAUTH2_ISSUER_URL',
+    urlsplit(MCP_RESOURCE_URL)._replace(path='', query='', fragment='').geturl(),
+)
 
 # OAuth 2.1 認可サーバ（django-oauth-toolkit）
 # Claude からの MCP 接続のためだけに使う。既存の /api/ は DRF の

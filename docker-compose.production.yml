@@ -46,6 +46,9 @@ services:
       # OAuth のディスカバリ文書（RFC 8414 / 9728）を配信するのは backend なので、
       # backend 側にも MCP のリソース識別子が必要
       - MCP_RESOURCE_URL=${MCP_RESOURCE_URL}
+      # 認可サーバの issuer。PWA と同一オリジンだと Android のリンク横取りで
+      # スマホの Claude アプリから認可画面に届かないため、別サブドメインを指定する（ADR #26）
+      - OAUTH2_ISSUER_URL=${OAUTH2_ISSUER_URL}
     depends_on:
       db:
         condition: service_healthy
@@ -79,6 +82,7 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - MCP_RESOURCE_URL=${MCP_RESOURCE_URL}
+      - OAUTH2_ISSUER_URL=${OAUTH2_ISSUER_URL}
     depends_on:
       db:
         condition: service_healthy
