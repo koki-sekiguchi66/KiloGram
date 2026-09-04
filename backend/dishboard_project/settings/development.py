@@ -1,7 +1,9 @@
 import os
 import socket
-from pathlib import Path
-from .base import *
+from .base import *  # noqa: F403,F405 - Djangoの環境別設定はbaseを継承する
+
+# ローカルテストは秘密値なしでも再現可能にする。本番設定では引き続き必須。
+SECRET_KEY = os.getenv('SECRET_KEY') or 'dishboard-development-only-secret-key'
 
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
@@ -48,7 +50,7 @@ else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',  # noqa: F405
         }
     }
 

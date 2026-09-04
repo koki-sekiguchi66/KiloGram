@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { CalendarDays } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getLocalDateString } from "@/lib/date";
 
 interface Meal {
   id: number;
@@ -35,7 +36,7 @@ function getOpacity(count: number): number {
 
 /** "YYYY-MM-DD" を返す */
 function toDateStr(d: Date): string {
-  return d.toISOString().split("T")[0];
+  return getLocalDateString(d);
 }
 
 const CELL_SIZE = 14;

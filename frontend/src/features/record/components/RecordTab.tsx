@@ -54,7 +54,7 @@ export function RecordTab({
       <DateSelector selectedDate={selectedDate} onDateChange={onDateChange} />
 
       {/* キャラクター挨拶 */}
-      <CharacterGreeting />
+      <CharacterGreeting selectedDate={selectedDate} />
 
       {/* PFCサマリー */}
       <PFCSummary

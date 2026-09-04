@@ -6,7 +6,7 @@ import axios, {
 
 const baseURL: string =
   import.meta.env.VITE_API_BASE_URL ||
-  "https://d4zpdgaymaeb8.cloudfront.net/api/";
+  "/api/";
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL,

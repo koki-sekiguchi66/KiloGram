@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 from oauth2_provider.urls import metadata_urlpatterns
+from record_app.auth_views import DishBoardLoginView, GoogleSessionLoginView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -17,5 +18,7 @@ urlpatterns = [
 
     # OAuth の同意画面はログイン済みセッションを要求する。SPA はトークン認証で
     # セッションを作らないため、認可フロー専用のログイン画面をここで用意する
+    path('accounts/login/', DishBoardLoginView.as_view(), name='login'),
+    path('accounts/google/', GoogleSessionLoginView.as_view(), name='google-session-login'),
     path('accounts/', include('django.contrib.auth.urls')),
 ]

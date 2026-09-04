@@ -16,7 +16,7 @@ from rest_framework.permissions import AllowAny
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu, CustomMenu
+from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu, CustomMenu, GoogleAccount
 from .serializers import (
     MealRecordSerializer, MealRecordListSerializer,
     UserRegistrationSerializer, UserProfileSerializer, WeightRecordSerializer,
@@ -25,6 +25,9 @@ from .serializers import (
 )
 from .business_logic.nutrition_calculator import NutritionCalculatorService
 from .services import MealService, WeightService, CustomFoodService
+from .google_auth import GoogleLinkRequired, InvalidGoogleToken, resolve_google_user, verify_google_id_token
+from django.core.exceptions import ImproperlyConfigured
+from rest_framework.authtoken.models import Token
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +38,6 @@ logger = logging.getLogger(__name__)
 def process_nutrition_label(request):
     """栄養成分表示画像を受け取り Azure AI Vision で栄養素を抽出して返す。"""
     logger.info("=== OCR処理開始（意味ブロックアプローチ）===")
-    logger.info(f"User: {request.user}")
-    logger.info(f"FILES: {list(request.FILES.keys())}")
 
     if 'image' not in request.FILES:
         logger.warning("画像ファイルが送信されていません")
@@ -81,8 +82,6 @@ def process_nutrition_label(request):
         logger.info(f"OCR処理完了: success={result.get('success')}")
 
         if result.get('success'):
-            logger.info(f"抽出された栄養成分: {result.get('nutrition')}")
-
             debug_mode = os.getenv('DEBUG', 'False').lower() == 'true'
 
             response_data = {
@@ -114,10 +113,10 @@ def process_nutrition_label(request):
             status=status.HTTP_503_SERVICE_UNAVAILABLE
         )
 
-    except Exception as e:
+    except Exception:
         logger.exception("OCR処理中に予期しないエラーが発生しました")
         return Response(
-            {'error': f'OCR処理に失敗しました: {str(e)}', 'success': False},
+            {'error': 'OCR処理に失敗しました', 'success': False},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
@@ -308,6 +307,60 @@ class LogoutView(APIView):
 
     def post(self, request):
         request.user.auth_token.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class GoogleLoginView(APIView):
+    """連携済みGoogleアカウントでログインし、未登録なら新規ユーザーを作る。"""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        try:
+            identity = verify_google_id_token(request.data.get('credential', ''))
+        except InvalidGoogleToken:
+            return Response({'error': 'Google認証に失敗しました'}, status=status.HTTP_400_BAD_REQUEST)
+        except ImproperlyConfigured:
+            return Response({'error': 'Googleログインは現在利用できません'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        try:
+            user = resolve_google_user(identity)
+        except GoogleLinkRequired:
+            return Response(
+                {'error': 'このメールアドレスの既存アカウントでログインしてから連携してください', 'link_required': True},
+                status=status.HTTP_409_CONFLICT,
+            )
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key, 'user_id': user.id, 'username': user.username})
+
+
+class GoogleLinkView(APIView):
+    """ログイン中の既存ユーザーへGoogleアカウントを明示的に連携する。"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        try:
+            identity = verify_google_id_token(request.data.get('credential', ''))
+        except InvalidGoogleToken:
+            return Response({'error': 'Google認証に失敗しました'}, status=status.HTTP_400_BAD_REQUEST)
+        except ImproperlyConfigured:
+            return Response({'error': 'Google連携は現在利用できません'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        if GoogleAccount.objects.filter(subject=identity.subject).exclude(user=request.user).exists():
+            return Response({'error': 'このGoogleアカウントは別のユーザーに連携されています'}, status=status.HTTP_409_CONFLICT)
+        if GoogleAccount.objects.filter(user=request.user).exclude(subject=identity.subject).exists():
+            return Response({'error': '別のGoogleアカウントが既に連携されています'}, status=status.HTTP_409_CONFLICT)
+        GoogleAccount.objects.update_or_create(
+            user=request.user,
+            defaults={'subject': identity.subject, 'email': identity.email},
+        )
+        return Response({'google_linked': True, 'email': identity.email})
+
+    def delete(self, request):
+        if not request.user.has_usable_password():
+            return Response(
+                {'error': 'パスワード未設定のためGoogle連携を解除できません'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        GoogleAccount.objects.filter(user=request.user).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 

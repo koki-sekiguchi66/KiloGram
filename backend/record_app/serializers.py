@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import MealRecord, MealRecordItem, CustomMenu, CustomMenuItem, StandardFood, CustomFood, WeightRecord, CafeteriaMenu
+from .models import MealRecord, MealRecordItem, CustomMenu, CustomMenuItem, CustomFood, WeightRecord, CafeteriaMenu
 from django.contrib.auth.models import User
 from django.db import transaction
 
@@ -39,9 +39,18 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """ユーザープロフィール取得用。読み取り専用。"""
+    google_linked = serializers.SerializerMethodField()
+    can_unlink_google = serializers.SerializerMethodField()
+
+    def get_google_linked(self, obj):
+        return hasattr(obj, 'google_account')
+
+    def get_can_unlink_google(self, obj):
+        return obj.has_usable_password()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'date_joined']
+        fields = ['id', 'username', 'email', 'date_joined', 'google_linked', 'can_unlink_google']
         read_only_fields = fields
 
 class CafeteriaMenuSerializer(serializers.ModelSerializer):

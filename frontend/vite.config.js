@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
+import { fileURLToPath } from 'url'
+
+const currentDirectory = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -83,10 +86,10 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@features': path.resolve(__dirname, './src/features'),
-      '@components': path.resolve(__dirname, './src/components'),
-      '@lib': path.resolve(__dirname, './src/lib'),
+      '@': path.resolve(currentDirectory, './src'),
+      '@features': path.resolve(currentDirectory, './src/features'),
+      '@components': path.resolve(currentDirectory, './src/components'),
+      '@lib': path.resolve(currentDirectory, './src/lib'),
     }
   },
   server: {

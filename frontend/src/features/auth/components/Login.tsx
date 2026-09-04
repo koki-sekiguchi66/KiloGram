@@ -9,13 +9,15 @@
  *   - "ユーザー名を入力" / "パスワードを入力"
  *   - heading の "ログイン"、button の "ログイン" / "ログイン中"
  */
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useCallback, useState, type ChangeEvent, type FormEvent } from "react";
 import { LogIn, User, Lock, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { apiClient } from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
+import { GoogleSignInButton } from "./GoogleSignInButton";
 
 interface LoginProps {
   onLoginSuccess: (token: string) => void;
@@ -61,6 +63,22 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
   };
 
   const isSuccess = message.includes("成功");
+
+  const handleGoogleCredential = useCallback(async (credential: string) => {
+    setMessage("");
+    setIsLoading(true);
+    try {
+      const { data } = await apiClient.post<{ token: string }>("/auth/google/", { credential });
+      onLoginSuccess(data.token);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { link_required?: boolean } } };
+      setMessage(err.response?.data?.link_required
+        ? "既存アカウントでログインし、設定画面からGoogleアカウントを連携してください。"
+        : "Googleログインに失敗しました。");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [onLoginSuccess]);
 
   return (
     <div>
@@ -118,6 +136,15 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
           )}
         </Button>
       </form>
+
+      {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+        <>
+          <div className="my-4 flex items-center gap-3">
+            <Separator className="flex-1" /><span className="text-xs text-muted-foreground">または</span><Separator className="flex-1" />
+          </div>
+          <GoogleSignInButton onCredential={handleGoogleCredential} />
+        </>
+      )}
 
       {message && (
         <Alert

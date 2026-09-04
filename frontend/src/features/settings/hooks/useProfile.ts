@@ -10,7 +10,7 @@
  *     エラーメッセージを返すだけでリダイレクトはしない（App.tsx の責務）
  *   - リトライは手動（refetch 関数を公開）
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { apiClient } from "@/lib/axios";
 
 export interface UserProfile {
@@ -18,6 +18,8 @@ export interface UserProfile {
   username: string;
   email: string;
   date_joined: string;
+  google_linked: boolean;
+  can_unlink_google: boolean;
 }
 
 interface UseProfileReturn {
@@ -28,6 +30,7 @@ interface UseProfileReturn {
 }
 
 export function useProfile(): UseProfileReturn {
+  const mountedRef = useRef(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,21 +40,23 @@ export function useProfile(): UseProfileReturn {
     setError(null);
     try {
       const { data } = await apiClient.get<UserProfile>("/profile/");
-      setProfile(data);
+      if (mountedRef.current) setProfile(data);
     } catch (err: unknown) {
       const e = err as { response?: { status?: number } };
       if (e.response?.status === 401) {
-        setError("認証エラー。再ログインしてください。");
+        if (mountedRef.current) setError("認証エラー。再ログインしてください。");
       } else {
-        setError("プロフィールの取得に失敗しました。");
+        if (mountedRef.current) setError("プロフィールの取得に失敗しました。");
       }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchProfile();
+    return () => { mountedRef.current = false; };
   }, [fetchProfile]);
 
   return { profile, loading, error, refetch: fetchProfile };
