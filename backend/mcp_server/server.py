@@ -67,11 +67,8 @@ def build_server(resource_url, issuer_url):
             # ツールごとの要求スコープは tools 側で個別に検査する
             required_scopes=[],
         ),
-        # FastMCP は host 未指定時、既定値の "127.0.0.1" を見て DNS rebinding
-        # 対策を自動有効化し、allowed_hosts を 127.0.0.1/localhost に限定する。
-        # nginx 経由で来る本番リクエストの Host は実際のドメインなので、
-        # 自動設定のままだと全リクエストが421(Invalid Host header)で拒否される。
-        # 対策自体は有効にしたまま、許可ホストを実際のリソースURLから明示する
+        # FastMCP は host 未指定だと localhost 前提で DNS rebinding 対策を自動有効化し、
+        # nginx 経由の本番 Host を 421 で弾く。対策は活かしたまま許可ホストを明示する
         transport_security=TransportSecuritySettings(
             enable_dns_rebinding_protection=True,
             allowed_hosts=[resource_host],

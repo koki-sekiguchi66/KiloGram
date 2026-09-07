@@ -1,12 +1,7 @@
 {% comment %}
-OAuth 認可フロー専用のログイン画面。
-
-SPA 本体はトークン認証（DRF）でセッションを作らないため、
-Claude から /o/authorize/ に飛んできたときにだけこの画面が出る。
-
-意匠は「食堂の掲示板」（ADR #21）に合わせるが、フロントエンドのビルド成果物には
-依存しない。この画面は Django が単体で返すため、Tailwind も CSS 変数も使えない
-（配色は index.css のトークンと同じ値をハードコードしている）。
+OAuth 認可フロー専用のログイン画面。SPA はトークン認証でセッションを作らないため、
+Claude から /o/authorize/ に来たときだけ出る。
+Django が単体で返すので Tailwind もテーマ変数も使えず、配色は index.css の値を写している（ADR #21）。
 {% endcomment %}
 <!DOCTYPE html>
 <html lang="ja">

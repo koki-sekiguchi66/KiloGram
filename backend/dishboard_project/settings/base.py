@@ -156,16 +156,8 @@ GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
 # Claude に登録する URL と完全一致していなければならない（パス込み）。
 MCP_RESOURCE_URL = os.getenv('MCP_RESOURCE_URL', 'http://localhost:8001/mcp')
 
-# 認可サーバの発行者識別子（issuer）。
-# 明示しないと DOT は「どの URL でメタデータを引かれたか」から issuer を導出するため、
-# ルート直下（https://host）とマウント先（https://host/o）で値が食い違う。
-# RFC 9207 の iss 検証は両者の完全一致を要求するので、ここで1つに固定する。
-#
-# 既定値は MCP リソース URL と同じオリジンだが、環境変数で独立に上書きできる。
-# 本番では PWA を配信しているオリジンと**別のサブドメイン**を指定する（ADR #26）。
-# 同一オリジンで OAuth のログイン画面（/accounts/ /o/authorize/）を提供すると、
-# Android が「インストール済み PWA へのリンク横取り」を発動し、スマホの Claude
-# アプリからログイン画面に到達できなくなるため
+# 認可サーバの issuer。DOT の自動導出だとマウント位置で値が割れ、RFC 9207 の
+# iss 検証に落ちるため固定する。本番は PWA と別サブドメインを指定する（ADR #26）。
 OAUTH2_ISSUER_URL = os.getenv(
     'OAUTH2_ISSUER_URL',
     urlsplit(MCP_RESOURCE_URL)._replace(path='', query='', fragment='').geturl(),
@@ -187,16 +179,12 @@ OAUTH2_PROVIDER = {
     # Claude は毎回 S256 の PKCE を送る。既定値だが、要件なので明示する
     'PKCE_REQUIRED': True,
 
-    # Claude が接続のたびにクライアントを自動登録する（RFC 7591）。
-    # 研究室内の利用者に client_id を配布して回る手間をなくすための選択。
-    # 登録が増え続けるため、Application テーブルは定期的に確認すること
+    # 利用者に client_id を配布せずに済ませる（ADR #22）。
+    # 登録が増え続けるため Application テーブルは定期的に確認すること
     'DCR_ENABLED': True,
 
-    # DOT は既定で DCR にも Django セッションログインを要求する
-    # （IsAuthenticatedDCRPermission）。Claude は未ログインの匿名リクエストとして
-    # クライアント登録を行うため、既定のままだと登録自体が401で拒否され、
-    # ログイン画面にすら到達できない。DCR_ENABLED の意図（匿名の動的登録）を
-    # 実現するには、この匿名許可を明示する必要がある
+    # DCR_ENABLED だけだと DOT の既定がセッションログインを要求し、
+    # 匿名で登録する Claude が 401 で弾かれる
     'DCR_REGISTRATION_PERMISSION_CLASSES': ('oauth2_provider.dcr.AllowAllDCRPermission',),
 
     # PRM（RFC 9728）が広告する resource。空だとリクエスト URL から導出されるが、
