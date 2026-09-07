@@ -14,21 +14,58 @@ disable-model-invocation: true
 
 ## A. 通常のデプロイ（コード更新の反映）
 
+**着手前に、手元で未 push のコミットが無いか確認する。**
+これを飛ばすと VM に古いコードが降り、原因究明で時間を溶かす。
+
+```bash
+git log origin/main..HEAD --oneline    # 手元で実行。何も出なければ OK
+```
+
 ```bash
 cd ~/dishboard
 git pull
 docker compose -f docker-compose.production.yml build
 docker compose -f docker-compose.production.yml up -d
 
-# マイグレーションがある場合のみ
-docker compose -f docker-compose.production.yml exec backend python manage.py migrate
+# マイグレーションがある場合のみ（★事前に必ずバックアップ → §E）
+docker compose -f docker-compose.production.yml run --rm backend python manage.py migrate
 
-docker compose -f docker-compose.production.yml ps      # db(healthy) / backend / nginx が Up
-docker compose -f docker-compose.production.yml logs --tail=100 backend
+# ★ backend / mcp を作り直したら nginx も restart する
+docker compose -f docker-compose.production.yml restart nginx
+
+docker compose -f docker-compose.production.yml ps   # db(healthy)/backend/mcp/nginx が Up
+docker compose -f docker-compose.production.yml logs --tail=100 backend mcp
 ```
 
-- `docs/` は `.gitignore` 済みなので `git pull` では VM に降りてこない
-- フロントの `VITE_API_BASE_URL` はビルド時に埋め込まれる。値を変えたら **build からやり直す**
+### 必ず引っかかる3点
+
+- **nginx の restart を忘れない。** `upstream` の名前解決は起動時の一度きりで、
+  以後 IP をキャッシュする。backend / mcp を作り直すと古い IP に繋ぎ続け、502 になる
+- **ビルド時変数を変えたら再ビルドする。** `VITE_API_BASE_URL` / `VITE_GOOGLE_CLIENT_ID` は
+  Vite が**ビルド時に埋め込む**。`.env` を書き換えて `up -d` しても反映されない
+
+  ```bash
+  docker compose -f docker-compose.production.yml build nginx
+  docker compose -f docker-compose.production.yml up -d nginx
+  ```
+
+- **`nginx/conf.d/dishboard.conf` は `git pull` で衝突する。**
+  ドメイン置換のローカル差分を持つため（ADR #25）。
+  `git stash push nginx/conf.d/dishboard.conf` → `git pull` → `git stash pop`
+
+`docs/` は `.gitignore` 済みなので `git pull` では VM に降りてこない。
+
+### 複数行コマンドの事故を避ける
+
+Bash の `\` は**直後に空白があると改行継続にならない**。
+チャットや Markdown からコピーすると混入しやすく、
+`docker buildx build requires 1 argument` のような分かりにくいエラーになる。
+
+**本番で叩くコマンドは、可能な限り1行で書く。**
+
+```bash
+docker compose -f docker-compose.production.yml run --rm backend python manage.py migrate
+```
 
 ## B. 初期構築で必ず踏む2つの罠
 
@@ -114,6 +151,62 @@ docker compose -f docker-compose.production.yml exec db \
   psql -U <POSTGRES_USER> -d <POSTGRES_DB> \
   -c "SELECT extname FROM pg_extension WHERE extname='pg_trgm';"
 ```
+
+## E-0. MCP / Google ログインを有効にする
+
+### OAuth 認可用サブドメイン（ADR #26）
+
+**PWA と同じオリジンで OAuth 認可を提供してはいけない。**
+Android がインストール済み PWA へのリンクを OS レベルで横取りし、
+スマホの Claude アプリから認可画面に到達できなくなる。
+
+1. DuckDNS で認可専用サブドメインを追加取得し、同じ VM の IP を登録する
+2. IP 更新 cron にもこのサブドメインを足す
+3. 証明書を取得する（nginx は起動済みなので §B-1 の回避手順は不要）
+4. `nginx/conf.d/dishboard.conf` の `<auth-sub>.duckdns.org` を置換する
+
+### `.env`
+
+```bash
+MCP_RESOURCE_URL=https://<sub>.duckdns.org/mcp        # Claude に登録する URL と完全一致
+OAUTH2_ISSUER_URL=https://<auth-sub>.duckdns.org      # PWA と別オリジンにする
+GOOGLE_CLIENT_ID=<client-id>.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=<同じ値>
+
+# 認可用サブドメインを足し忘れると 400 / CSRF エラーになる
+ALLOWED_HOSTS=<sub>.duckdns.org,<auth-sub>.duckdns.org
+CSRF_TRUSTED_ORIGINS=https://<sub>.duckdns.org,https://<auth-sub>.duckdns.org
+```
+
+`CORS_ALLOWED_ORIGINS` は SPA の API 呼び出し用なので認可用サブドメインは**不要**。
+
+Google Cloud Console の「承認済み JavaScript 生成元」には、
+**PWA と認可用サブドメインの両方**を登録する（パス・末尾スラッシュは付けない）。
+
+### 疎通確認（Claude に登録する前に）
+
+```bash
+curl -s https://<sub>.duckdns.org/.well-known/oauth-protected-resource
+curl -s https://<auth-sub>.duckdns.org/.well-known/oauth-authorization-server
+```
+
+両方 **JSON** が返ること。HTML が返るなら nginx 設定が効いていない。
+PRM の `resource` が `MCP_RESOURCE_URL` と完全一致していること（1文字でも違うと接続しない）。
+
+### ログから切り分ける
+
+```bash
+docker compose -f docker-compose.production.yml logs -f nginx
+```
+
+| 症状 | 見るべき所 |
+|---|---|
+| `POST /o/register/` が 401 | DCR のパーミッション設定 |
+| `POST /mcp` が 405 | nginx の location が効いていない |
+| `POST /mcp` が 421 | FastMCP の許可ホスト設定 |
+| `GET /accounts/login/` が出ない | PWA のリンク横取り（別サブドメインで解決済みか確認） |
+
+詳細は `docs/troubleshooting.md` 14〜18。
 
 ## E. 運用
 
