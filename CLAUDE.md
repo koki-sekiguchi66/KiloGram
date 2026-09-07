@@ -67,7 +67,26 @@ npm run build           # ビルド
   - type: `feat` / `fix` / `refactor` / `docs` / `chore` / `test`
   - **`Co-Authored-By` は付けない**
 
+## ドキュメント
+
+**このリポジトリは public 公開を前提とする。就活で採用担当者が読む可能性がある。**
+書く先を「読者が誰か」で決める。判断に迷ったら `write-docs` Skill を読む。
+
+| 置き場所 | 追跡 | 読者 | 書くもの |
+|---|---|---|---|
+| `docs-public/` | Git 追跡 | 第三者・将来の保守担当 | 仕様、**設計判断とその理由**、API、制約、今後の候補 |
+| `docs/` | **Git 管理外** | 自分だけ | 失敗した操作、詰まった過程、環境固有の値、感想 |
+
+- **設計判断の理由は必ず `docs-public/` に残す。** このリポジトリで最も価値がある情報
+- **経験談・トラブルの実況は `docs/`。** リモートには一般化した教訓だけを書く
+- **実ドメイン・VM名・アカウント名・秘密値はどちらにも書かない**（`docs/` でも避ける）
+- 機能を実装したら、対応する `docs-public/` の記述を同じ変更で更新する
+
 ## 参照
 
-- 手順が必要な作業には Skill がある: `add-api-endpoint` / `add-frontend-feature` / `write-tests` / `deploy`（`/deploy` と明示したときのみ）
-- 設計判断の経緯・デプロイ詳細・トラブル事例は `docs/`（Git 管理外。`git add` しない）
+- 手順が必要な作業には Skill がある。**着手前に該当するものを読む**
+  - 実装: `add-api-endpoint` / `add-frontend-feature` / `write-tests`
+  - 記録: `write-docs`（ドキュメント・ADR の書き分け）
+  - 本番: `deploy`（`/deploy` と明示したときのみ）
+- 設計判断の記録は `docs-public/decisions.md`（ADR #1〜）
+- 個人的な作業ログ・トラブル事例は `docs/`（Git 管理外。`git add` しない）

@@ -100,3 +100,11 @@ cd backend && venv/Scripts/python.exe -m pytest -q
 
 フロントから使う場合は、`frontend/src/features/<name>/api/` に呼び出しを足し、
 レスポンスの型を `frontend/src/types/` に定義する（`add-frontend-feature` Skill 参照）。
+
+## 7. 記録する
+
+公開 API を増やした・**一般的でない設計判断をした**なら、同じ変更の中で
+`docs-public/` を更新する。書き分けは `write-docs` Skill を読む。
+
+- 認証・認可・データ分離に関わる判断をしたなら、`docs-public/decisions.md` に ADR を1つ足す
+- 詰まった過程は `docs/`（Git 管理外）へ。リモートには書かない

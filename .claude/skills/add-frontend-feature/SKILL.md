@@ -107,3 +107,13 @@ npm run test:run
 
 npm パッケージを追加した場合は `docker compose rm -v -f frontend && docker compose up -d --build frontend`
 （`-v` を忘れると anonymous volume が残って反映されない）。
+
+`VITE_` の環境変数を増やした場合は、`.env.production.example` にも項目を足す。
+**ビルド時に埋め込まれる**ため、本番では frontend イメージの再ビルドが要る（`deploy` Skill 参照）。
+
+## 8. 記録する
+
+UI の方針・意匠を変えた、または**一般的でない設計判断をした**なら、同じ変更の中で
+`docs-public/` を更新する。書き分けは `write-docs` Skill を読む。
+
+- 詰まった過程は `docs/`（Git 管理外）へ。リモートには書かない
