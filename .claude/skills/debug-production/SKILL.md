@@ -75,7 +75,10 @@ docker compose -f docker-compose.production.yml ps -a    # ★ -a を付ける
 | `POST` だけ 405 | そのパスが nginx の location にマッチせず SPA に落ちている |
 | `POST /mcp` が 421 | FastMCP の許可ホスト（DNS rebinding 対策） |
 | `POST /o/register/` が 401 | DCR のパーミッション設定 |
+| AS メタデータが 400 | `.env` の `ALLOWED_HOSTS` に認可用サブドメインが無い。**新しい変数を足しただけでは足りない** |
+| `openid-configuration` や `/register` を探し始める | **詰まっているサイン**。Claude が推測で探索している。原因は1つ上の応答にある |
 | `DisallowedHost` が定期的に出る | ヘルスチェックが Host ヘッダを送っていない |
+| `.env` を変えたのに反映されない | 環境変数はコンテナ作成時に確定する。`restart` ではなく `up -d --force-recreate` |
 | フロントが古い挙動 | `VITE_` 変数はビルド時に埋め込まれる。再ビルドしたか |
 | nginx 設定を変えたのに反映されない | 生成はコンテナ作成時のみ。`up -d --force-recreate nginx` を使う |
 

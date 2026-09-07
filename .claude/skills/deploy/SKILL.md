@@ -154,7 +154,8 @@ OAUTH2_ISSUER_URL=https://<auth-sub>.duckdns.org      # PWA と別オリジン�
 GOOGLE_CLIENT_ID=<client-id>.apps.googleusercontent.com
 VITE_GOOGLE_CLIENT_ID=<同じ値>
 
-# 認可用サブドメインの足し忘れは 400 / CSRF エラーになる
+# ★新しい変数を足すだけでは足りない。既存のこの2つにも認可用サブドメインが要る。
+#   忘れると AS メタデータが400になり、コネクタ登録が失敗する
 ALLOWED_HOSTS=<sub>.duckdns.org,<auth-sub>.duckdns.org
 CSRF_TRUSTED_ORIGINS=https://<sub>.duckdns.org,https://<auth-sub>.duckdns.org
 ```
@@ -162,6 +163,13 @@ CSRF_TRUSTED_ORIGINS=https://<sub>.duckdns.org,https://<auth-sub>.duckdns.org
 `CORS_ALLOWED_ORIGINS` は SPA の API 呼び出し用なので認可用サブドメインは**不要**。
 Google Cloud Console の「承認済み JavaScript 生成元」には
 **PWA と認可用サブドメインの両方**を登録する（パス・末尾スラッシュ無し）。
+
+**`.env` を変えたら `restart` ではなく作り直す。** 環境変数はコンテナ作成時に確定する。
+
+```bash
+docker compose -f docker-compose.production.yml up -d --force-recreate backend mcp
+docker compose -f docker-compose.production.yml restart nginx
+```
 
 ### 疎通確認（Claude に登録する前に）
 
@@ -178,6 +186,7 @@ curl -s https://<auth-sub>.duckdns.org/.well-known/oauth-authorization-server
 | 症状 | 見るべき所 |
 |---|---|
 | `POST /o/register/` が 401 | DCR のパーミッション設定 |
+| AS メタデータが 400、`openid-configuration` や `/register` を探し始める | `ALLOWED_HOSTS` に認可用サブドメインが無い |
 | `POST /mcp` が 405 | nginx の location が効いていない |
 | `POST /mcp` が 421 | FastMCP の許可ホスト設定 |
 | `GET /accounts/login/` が出ない | PWA のリンク横取り（別サブドメインで解決済みか確認） |
