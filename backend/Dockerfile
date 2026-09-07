@@ -58,9 +58,10 @@ USER appuser
 
 EXPOSE 8000
 
-# ヘルスチェックの設定
+# Host ヘッダを付けないと ALLOWED_HOSTS に弾かれ、30秒ごとに400とトレースバックがログを埋める。
+# ALLOWED_HOSTS の先頭を使い、未設定の開発環境では localhost に落とす
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:8000/api/health/ || exit 1
+  CMD H="${ALLOWED_HOSTS%%,*}"; curl -f -H "Host: ${H:-localhost}" http://localhost:8000/api/health/ || exit 1
 
 CMD ["gunicorn", "dishboard_project.wsgi:application", \
      "--bind", "0.0.0.0:8000", \
