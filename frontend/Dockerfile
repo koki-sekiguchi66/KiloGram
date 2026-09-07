@@ -36,6 +36,9 @@ FROM nginx:alpine AS production
 # ビルド成果物をコピー
 COPY --from=builder /app/dist /usr/share/nginx/html
 
+# conf.d はテンプレートから生成する場所なので、同梱の既定設定を消しておく（ADR #25）
+RUN rm -f /etc/nginx/conf.d/default.conf
+
 # 非rootユーザーで実行
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chmod -R 755 /usr/share/nginx/html

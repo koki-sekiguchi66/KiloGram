@@ -102,8 +102,17 @@ services:
     ports:
       - "80:80"
       - "443:443"
+    environment:
+      # entrypoint が templates/*.template を envsubst して conf.d/*.conf を生成する。
+      # FILTER で対象を限定し、nginx の実行時変数と .env の他の値を巻き込まない
+      - NGINX_ENVSUBST_FILTER=^DISHBOARD_
+      # 未設定のまま起動すると server_name が空の壊れた設定が生成されるため、
+      # :? で compose の段階で失敗させる
+      - DISHBOARD_DOMAIN=${DISHBOARD_DOMAIN:?.env に設定してください}
+      - DISHBOARD_AUTH_DOMAIN=${DISHBOARD_AUTH_DOMAIN:?.env に設定してください}
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      # conf.d は生成先なのでマウントしない（ro にすると起動時に書き込めない）
+      - ./nginx/templates:/etc/nginx/templates:ro
       - certbot_certs:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
     depends_on:

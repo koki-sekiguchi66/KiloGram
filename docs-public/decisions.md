@@ -881,10 +881,10 @@ Claude はユーザーの発話を解釈して操作を選ぶ。解釈を誤る�
 
 ## #25. nginx のドメイン名を sed で書き換えず、envsubst でテンプレート化する
 
-> 状態: **方針決定のみ。未実装**（当面は `git stash` で個別に対応する）
+> 状態: **適用済み**
 
 **決定**
-`nginx/conf.d/dishboard.conf` に実際の DuckDNS サブドメインを `sed` で書き込む今の運用をやめ、
+`nginx/conf.d/dishboard.conf` に実際の DuckDNS サブドメインを `sed` で書き込む運用をやめ、
 `nginx:alpine` 標準の `envsubst` テンプレート機構に移行する。
 ファイルはプレースホルダ（`${DUCKDNS_DOMAIN}` 等）を持つテンプレートのまま git 管理し、
 実際のドメイン名は `.env`（gitignore 対象）にのみ置く。
@@ -919,15 +919,22 @@ VM 側の `git pull` が「ローカル変更が上書きされる」と拒否�
 
 **トレードオフ**
 
-- 得るもの: `git pull` のたびに `dishboard.conf` で衝突しなくなる。ドメイン名が git 履歴に残らない
-- 失うもの: `docker-compose.production.yml` のボリュームマウント方式を変更する必要がある。
-  現状は `nginx/conf.d` を `:ro` で直接マウントしているが、`envsubst` は
-  `/etc/nginx/templates/*.template` から `/etc/nginx/conf.d/*.conf` を**起動時に生成**する仕組みのため、
-  出力先への書き込みを許可する形に変える必要がある
-- **未実装。** `docker-compose.production.yml` と `nginx/conf.d/` は本番構成であり、
-  変更前に確認を取る対象（`CLAUDE.md` の制約）。実施するまでの当面の運用は、
-  `nginx/conf.d/dishboard.conf` に変更が入った `pull` の前に
-  `git stash push nginx/conf.d/dishboard.conf` → `pull` → `git stash pop` で個別に対応する
+- 得たもの: `git pull` で衝突しなくなり、VM 上での退避作業が不要になった。
+  ドメイン名が git 履歴に残らない
+- 失ったもの: 設定が起動時生成になり、**編集してもコンテナを作り直すまで反映されない**。
+  テンプレート変更後は `restart` ではなく `up -d --force-recreate nginx` が要る
+- 副作用: `conf.d` をマウントしなくなったため、イメージ同梱の `default.conf` が
+  残るようになる。production ステージで削除している
+
+**実装メモ**
+
+`envsubst` は全ての `$VAR` を置換しうるため、`$host` や `$proxy_add_x_forwarded_for` などの
+nginx 実行時変数を壊す危険がある。しかし nginx の entrypoint は**環境変数として存在する名前だけ**を
+置換対象に組み立てるため、これらは元から安全である。加えて `NGINX_ENVSUBST_FILTER=^DISHBOARD_` で
+対象を限定し、`.env` の他の値（DB のパスワード等）を巻き込まないようにしている。
+
+証明書取得時の「鶏と卵」問題（#10）の回避手順も、生成物ではなくテンプレートを
+差し替える形に変えた。手順は `deploy` Skill を参照。
 
 ---
 
@@ -1048,4 +1055,3 @@ Google ID トークンにはメールアドレスが含まれる。同じメー�
 | Myメニュー一覧の件数取得 | `CustomMenuListSerializer.get_items_count` が `obj.items.count()` を呼ぶ。`prefetch_related` のキャッシュは `count()` では使われないため、一覧の行数だけ COUNT クエリが出る。`len(obj.items.all())` に変えれば解消する |
 | pg_trgm の GIN インデックスが使われていない | 食品検索は `similarity(name, q) > 閾値` で絞っているが、この形では GIN インデックスは効かず Seq Scan になる（インデックスが効くのは `%` 演算子）。標準食品2537件で `EXPLAIN ANALYZE` 実行時間 1.5ms のため実害はないが、`name % q` に書き換えれば索引が使える。件数が桁で増えたら見直す |
 | MCP 経由の記録を識別できない | `MealRecord` に `source`（web / ocr / mcp）を持たせていないため、どの入口から作られた記録か後から分からない（#24 参照） |
-| nginx のドメイン名を sed で書き換えている | `nginx/conf.d/dishboard.conf` は git 追跡下だが、VM 上で実ドメインに `sed` 置換しているため、同ファイルへの変更が入るたびに `git pull` が衝突する。`envsubst` テンプレート化（#25）で解消できるが未実装 |

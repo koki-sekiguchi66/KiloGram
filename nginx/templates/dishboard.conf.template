@@ -1,3 +1,7 @@
+# nginx:alpine の entrypoint が起動時に envsubst で conf.d/dishboard.conf を生成する。
+# ドメインは .env の DISHBOARD_DOMAIN / DISHBOARD_AUTH_DOMAIN から注入する（ADR #25）。
+# $host のような nginx の実行時変数は環境変数ではないため置換されない。
+
 upstream backend {
     server backend:8000;
 }
@@ -8,7 +12,7 @@ upstream mcp {
 
 server {
     listen 80;
-    server_name <sub>.duckdns.org;
+    server_name ${DISHBOARD_DOMAIN};
 
     # Let's Encrypt (HTTP-01 チャレンジ)
     location /.well-known/acme-challenge/ {
@@ -22,10 +26,10 @@ server {
 
 server {
     listen 443 ssl;
-    server_name <sub>.duckdns.org;
+    server_name ${DISHBOARD_DOMAIN};
 
-    ssl_certificate     /etc/letsencrypt/live/<sub>.duckdns.org/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/<sub>.duckdns.org/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/${DISHBOARD_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DISHBOARD_DOMAIN}/privkey.pem;
 
     client_max_body_size 20M;   # OCR 画像アップロード用
 
@@ -156,7 +160,7 @@ server {
 # 人間がブラウザで開く認可・ログイン画面だけである
 server {
     listen 80;
-    server_name <auth-sub>.duckdns.org;
+    server_name ${DISHBOARD_AUTH_DOMAIN};
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -169,10 +173,10 @@ server {
 
 server {
     listen 443 ssl;
-    server_name <auth-sub>.duckdns.org;
+    server_name ${DISHBOARD_AUTH_DOMAIN};
 
-    ssl_certificate     /etc/letsencrypt/live/<auth-sub>.duckdns.org/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/<auth-sub>.duckdns.org/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/${DISHBOARD_AUTH_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DISHBOARD_AUTH_DOMAIN}/privkey.pem;
 
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;

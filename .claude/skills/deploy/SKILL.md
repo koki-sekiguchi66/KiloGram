@@ -43,8 +43,12 @@ docker compose -f docker-compose.production.yml logs --tail=100 backend mcp
 |---|---|
 | nginx の restart 忘れ → **502** | `upstream` の名前解決は起動時の一度きり。backend/mcp を作り直すと古い IP に繋ぎ続ける |
 | `VITE_` 変数を変えたのに反映されない | Vite は**ビルド時に埋め込む**。`build nginx` → `up -d nginx` が必要 |
-| `nginx/conf.d/dishboard.conf` が `git pull` で衝突 | ドメイン置換のローカル差分（ADR #25）。`git stash push <file>` → `pull` → `stash pop` |
 | `\` の後ろの空白で改行継続が切れる | `docker buildx build requires 1 argument` 等になる。**本番コマンドは1行で書く** |
+
+**nginx 設定を手で書き換えない。** `nginx/templates/dishboard.conf.template` から
+起動時に `conf.d/dishboard.conf` が生成される（ADR #25）。
+ドメインは `.env` の `DISHBOARD_DOMAIN` / `DISHBOARD_AUTH_DOMAIN` で注入する。
+生成物を直接編集しても次の起動で消える。
 
 `docs/` は `.gitignore` 済みなので `git pull` では VM に降りてこない。
 
@@ -55,19 +59,20 @@ docker compose -f docker-compose.production.yml logs --tail=100 backend mcp
 nginx 設定に 443 の server ブロックがあると、証明書が無い状態では nginx が起動できない。
 しかし nginx が起動しないと ACME チャレンジに応答できず、証明書が取得できない。
 
-**回避手順**（設定をボリュームマウントで与えているのでイメージ再ビルドは不要）:
+**回避手順**。テンプレートは触らず、**証明書取得の間だけ別テンプレートを置く**。
+`templates/` は読み取り専用マウントなので、ホスト側でファイルを足し引きする。
 
 ```bash
 cd ~/dishboard
 
-# 1. 本来の設定を退避
-cp nginx/conf.d/dishboard.conf nginx/conf.d/dishboard.conf.full
+# 1. 本来のテンプレートを templates/ の外へ退避
+mv nginx/templates/dishboard.conf.template /tmp/dishboard.conf.template
 
-# 2. 80番のみ・SSL 参照なしの最小設定に一時差し替え（<sub> は実際のサブドメインに置換）
-cat > nginx/conf.d/dishboard.conf <<'EOF'
+# 2. 80番のみ・SSL 参照なしの最小テンプレートを置く（変数はそのまま書く）
+cat > nginx/templates/bootstrap.conf.template <<'EOF'
 server {
     listen 80;
-    server_name <sub>.duckdns.org;
+    server_name ${DISHBOARD_DOMAIN} ${DISHBOARD_AUTH_DOMAIN};
     location /.well-known/acme-challenge/ { root /var/www/certbot; }
     location / { return 200 "temporary\n"; add_header Content-Type text/plain; }
 }
@@ -77,17 +82,17 @@ EOF
 docker compose -f docker-compose.production.yml up -d nginx
 docker compose -f docker-compose.production.yml ps
 
-# 4. certbot で証明書を取得（ボリューム名は docker volume ls で確認する）
-docker run --rm \
-  -v dishboard_certbot_certs:/etc/letsencrypt \
-  -v dishboard_certbot_www:/var/www/certbot \
-  certbot/certbot certonly --webroot -w /var/www/certbot \
-  -d <sub>.duckdns.org --email <your-email> --agree-tos --no-eff-email
+# 4. 証明書を取得（ボリューム名は docker volume ls で確認する）
+docker run --rm -v dishboard_certbot_certs:/etc/letsencrypt -v dishboard_certbot_www:/var/www/certbot certbot/certbot certonly --webroot -w /var/www/certbot -d <sub>.duckdns.org -d <auth-sub>.duckdns.org --email <your-email> --agree-tos --no-eff-email
 
-# 5. 本来の設定に戻して再起動
-mv nginx/conf.d/dishboard.conf.full nginx/conf.d/dishboard.conf
-docker compose -f docker-compose.production.yml restart nginx
+# 5. 本来のテンプレートに戻して再作成（restart では再生成されない）
+rm nginx/templates/bootstrap.conf.template
+mv /tmp/dishboard.conf.template nginx/templates/
+docker compose -f docker-compose.production.yml up -d --force-recreate nginx
 ```
+
+> **設定の再生成はコンテナ作成時にだけ走る。** テンプレートを変えたら
+> `restart` ではなく `up -d --force-recreate nginx` を使う。
 
 証明書は90日で失効する。cron で `certbot renew`（毎月1日・15日 3:00）を回すこと。
 
@@ -138,10 +143,12 @@ docker compose -f docker-compose.production.yml exec db \
 **PWA と同じオリジンで OAuth 認可を提供してはいけない**（ADR #26）。
 Android が PWA へのリンクを OS レベルで横取りし、スマホの Claude アプリから
 認可画面に到達できなくなる。認可専用サブドメインを取得し、
-IP 更新 cron と証明書を追加してから `nginx/conf.d/dishboard.conf` の
-`<auth-sub>.duckdns.org` を置換する（nginx は起動済みなので §B-1 は不要）。
+IP 更新 cron と証明書を追加してから `.env` に `DISHBOARD_AUTH_DOMAIN` を設定する
+（nginx は起動済みなので §B-1 は不要）。
 
 ```bash
+DISHBOARD_DOMAIN=<sub>.duckdns.org                    # nginx テンプレートへ注入
+DISHBOARD_AUTH_DOMAIN=<auth-sub>.duckdns.org
 MCP_RESOURCE_URL=https://<sub>.duckdns.org/mcp        # Claude に登録する URL と完全一致
 OAUTH2_ISSUER_URL=https://<auth-sub>.duckdns.org      # PWA と別オリジンにする
 GOOGLE_CLIENT_ID=<client-id>.apps.googleusercontent.com
