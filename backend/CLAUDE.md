@@ -109,11 +109,15 @@ pytest + pytest-django（`pytest.ini` で `DJANGO_SETTINGS_MODULE=...settings.de
 `resolve_db_host()` はホスト名 `db` が解決できなければ `localhost` にフォールバックする
 （Docker 経由でもホスト直実行でも同じ設定で動かすため）。
 
-## docstring
+## docstring とコメント
 
-クラスと主要メソッドに日本語で付ける。「何をするか」に加え**非自明な前提**を書く。
+クラスと主要メソッドに日本語の docstring を付ける。**1行を基本**とし、
+非自明な前提があるときだけ数行に伸ばす。
 
 ```python
 class MealRecordItem(models.Model):
     """食事記録の明細行。栄養素は記録時点のスナップショットとして保持する。"""
 ```
+
+行コメントは1〜2行に留める。背景・代替案・トレードオフはコードに書かず、
+ADR に書いて `（ADR #1）` と参照する。
