@@ -1,0 +1,209 @@
+{% comment %}
+OAuth 認可（同意）画面。django-oauth-toolkit の既定テンプレートを差し替える。
+既定は base.html 経由で同梱 CSS を読むが、その CSS を配信していないため無装飾になっていた。
+意匠はログイン画面と揃える（ADR #21）。フォームの name 属性は DOT の期待どおりに保つこと。
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>連携の許可 | DishBoard</title>
+  <style>
+    :root {
+      --board: #14201a;
+      --board-edge: #3b4a3f;
+      --cream: #ede6d2;
+      --cream-dim: #9fae97;
+      --vermilion: #e0524a;
+      --vermilion-dark: #c8443d;
+      --frame: #4a3a2a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+      font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      color: var(--cream);
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, #2c3a30 0%, transparent 70%),
+        #1c2420;
+    }
+
+    .board {
+      width: min(28rem, 100%);
+      background: var(--board);
+      border: 0.5rem solid var(--frame);
+      border-radius: 0.375rem;
+      padding: 2.5rem 2rem 2rem;
+      box-shadow:
+        0 1.5rem 3rem rgba(0, 0, 0, 0.45),
+        inset 0 0 4rem rgba(255, 255, 255, 0.035);
+    }
+
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.25rem;
+      letter-spacing: 0.06em;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    h1 .app {
+      display: block;
+      margin-top: 0.375rem;
+      font-size: 1.5rem;
+      color: var(--vermilion);
+    }
+
+    h1::after {
+      content: "";
+      display: block;
+      width: 3.5rem;
+      height: 2px;
+      margin: 1rem auto 0;
+      background: var(--cream-dim);
+      opacity: 0.5;
+      border-radius: 2px;
+    }
+
+    .lead {
+      margin: 1.5rem 0 0.75rem;
+      font-size: 0.875rem;
+      color: var(--cream-dim);
+    }
+
+    ul.scopes {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    ul.scopes li {
+      position: relative;
+      padding: 0.5rem 0 0.5rem 1.5rem;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      border-bottom: 1px dashed var(--board-edge);
+    }
+
+    ul.scopes li:last-child { border-bottom: none; }
+
+    /* チョークのチェック印 */
+    ul.scopes li::before {
+      content: "✓";
+      position: absolute;
+      left: 0.25rem;
+      color: var(--vermilion);
+      font-weight: 700;
+    }
+
+    .note {
+      margin: 1.25rem 0 0;
+      padding-top: 1rem;
+      border-top: 1px solid var(--board-edge);
+      font-size: 0.75rem;
+      line-height: 1.7;
+      color: var(--cream-dim);
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    input[type="submit"] {
+      flex: 1;
+      padding: 0.75rem;
+      font-size: 0.9375rem;
+      font-family: inherit;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      border: none;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: background-color 0.15s;
+    }
+
+    .btn-cancel {
+      color: var(--cream);
+      background: transparent;
+      border: 1px solid var(--board-edge) !important;
+    }
+
+    .btn-cancel:hover { background: rgba(255, 255, 255, 0.05); }
+
+    .btn-allow {
+      color: #fff;
+      background: var(--vermilion);
+    }
+
+    .btn-allow:hover { background: var(--vermilion-dark); }
+
+    input[type="submit"]:focus-visible {
+      outline: 2px solid var(--cream);
+      outline-offset: 2px;
+    }
+
+    .error {
+      padding: 0.625rem 0.875rem;
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      color: #ffd9d6;
+      background: rgba(224, 82, 74, 0.14);
+      border-left: 3px solid var(--vermilion);
+      border-radius: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="board">
+    {% if not error %}
+      <form id="authorizationForm" method="post">
+        <h1>
+          次のアプリに連携を許可しますか
+          <span class="app">{{ application.name|default:"外部アプリ" }}</span>
+        </h1>
+
+        {% csrf_token %}
+        {% for field in form %}
+          {% if field.is_hidden %}{{ field }}{% endif %}
+        {% endfor %}
+
+        <p class="lead">許可する範囲</p>
+        <ul class="scopes">
+          {% for scope in scopes_descriptions %}
+            <li>{{ scope }}</li>
+          {% endfor %}
+        </ul>
+
+        {{ form.errors }}
+        {{ form.non_field_errors }}
+
+        <p class="note">
+          許可すると、このアプリはあなたのアカウントの上記の範囲にアクセスできます。
+          食事記録の削除はできません。許可はいつでも取り消せます。
+        </p>
+
+        <div class="actions">
+          <input type="submit" class="btn-cancel" value="キャンセル">
+          <input type="submit" class="btn-allow" name="allow" value="許可する">
+        </div>
+      </form>
+    {% else %}
+      <h1>認可できませんでした</h1>
+      <p class="error">
+        {{ error.error }}<br>
+        {{ error.description }}
+      </p>
+    {% endif %}
+  </main>
+</body>
+</html>
