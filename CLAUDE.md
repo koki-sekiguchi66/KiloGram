@@ -21,6 +21,7 @@
 | 画面・feature 追加 | `.claude/skills/add-frontend-feature/SKILL.md` |
 | テスト | `.claude/skills/write-tests/SKILL.md` |
 | ドキュメント・ADR | `.claude/skills/write-docs/SKILL.md` |
+| 本番の不具合の切り分け | `.claude/skills/debug-production/SKILL.md` |
 | 本番反映（`/deploy` 明示時のみ） | `.claude/skills/deploy/SKILL.md` |
 | 「なぜこの設計か」の確認 | `docs-public/decisions.md`（ADR #1〜#27） |
 | 全体構成 | `ARCHITECTURE.md` |

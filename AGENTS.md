@@ -38,6 +38,7 @@ Skill 機構を持たないエージェントも、**該当する作業をする
 | `.claude/skills/add-frontend-feature/SKILL.md` | 画面や feature を追加する |
 | `.claude/skills/write-tests/SKILL.md` | テストを書く・直す |
 | `.claude/skills/write-docs/SKILL.md` | ドキュメント・ADR を書く |
+| `.claude/skills/debug-production/SKILL.md` | 本番の不具合を切り分ける |
 | `.claude/skills/deploy/SKILL.md` | 本番に反映する（**明示的な指示があるときだけ**） |
 
 ## 4. 逸脱しやすい点（実際に起きたもの）
