@@ -7,94 +7,82 @@ src/
   features/<name>/     機能単位。api/ components/ hooks/ types.ts index.ts
   components/ui/       shadcn/ui のプリミティブ。ここに独自コンポーネントを増やさない
   components/layout/   AppShell / Header / Sidebar
-  components/inputs/   feature をまたぐ独自の入力部品（MeasureField / QuickAmountChips）
+  components/inputs/   feature をまたぐ独自入力部品（MeasureField / QuickAmountChips）
   types/               feature をまたぐ共通型（index.ts で再エクスポート）
-  lib/                 axios インスタンス（apiClient）と汎用ユーティリティ
+  lib/                 apiClient（axios）と汎用ユーティリティ
   test/                Vitest のセットアップとヘルパー
 ```
 
-新機能は `src/features/<name>/` に作り、上記の構成に揃える。
+新機能は `src/features/<name>/` に作る。
 
-**feature 間の参照は `index.ts`（バレルエクスポート）経由に限る。**
+**feature 間の参照は `index.ts` 経由に限る。** 内部構造の変更を feature 外へ波及させないため。
 
 ```typescript
 import { EditCustomFoodModal } from '@/features/customFoods';        // ✅
 import X from '@/features/customFoods/components/EditCustomFoodModal'; // ❌
 ```
 
-内部構造を変えたときに feature 外へ影響を波及させないため。
+**型の置き場所**: 複数 feature から参照するなら `src/types/`、その feature 専用なら
+`features/<name>/types.ts`。コンポーネント内でローカル定義しない。
 
-**型の置き場所**: 複数 feature から参照される型は `src/types/` に集約する（`src/types/index.ts` から再エクスポート）。
-その feature の中でしか使わない型だけ `features/<name>/types.ts` に置く。コンポーネント内でローカル定義しない。
-
-パスエイリアス: `@/` `@features/` `@components/` `@lib/`（`tsconfig.json` と `vite.config.js` の両方に定義。片方だけ足しても動かない）。
+パスエイリアス `@/` `@features/` `@components/` `@lib/` は
+`tsconfig.json` と `vite.config.js` の**両方**に定義する（片方だけでは動かない）。
 
 ## TypeScript
 
-- `strict: true` / `allowJs: false`。`src/` 配下に `.js` / `.jsx` は存在しない
-- **`@ts-expect-error` と `any` は使用禁止**。型が不明な外部データは `unknown` で受けて絞り込む
-- 型チェックが実質的な品質ゲート: `npx tsc --noEmit`
-  （`npm run lint` の ESLint 設定は `**/*.{js,jsx}` のみを対象にしているため、`.ts` / `.tsx` はチェックされない）
+- `strict: true` / `allowJs: false`。`src/` に `.js` / `.jsx` は無い
+- **`@ts-expect-error` と `any` は禁止**。不明な外部データは `unknown` で受けて絞り込む
+- **`npx tsc --noEmit` が実質的な品質ゲート。**
+  ESLint の対象は `**/*.{js,jsx}` のみで、`.ts` / `.tsx` を検査していない
 
 ## UI
 
-- **Tailwind CSS v4 + shadcn/ui**。Bootstrap / react-bootstrap は削除済みで使わない
-- 独自のボタン・カードを作らず `@/components/ui/*` のプリミティブを使う
-- **色を直接書かない**。`index.css` の `:root`（dark）と `:root.light` に定義したテーマ変数（`--primary` / `--muted-foreground` / `--color-protein` 等）経由で参照する。直接書くと `useTheme` のテーマ切替で破綻する
-- **トーストは `sonner`**。`react-hot-toast` は削除済み
-- グラフは `recharts`
-- **数値欄は `MeasureField`（`@/components/inputs`）を使う**。`<input type="number">` を直接置かない。
-  値は文字列で渡す（空欄と 0 を区別するため）。ホイール誤爆・スピナーの小ささ・0 の打ち消しを避ける狙い（→ `docs-public/decisions.md` #18）
+- **Tailwind CSS v4 + shadcn/ui**（Bootstrap は削除済み）
+- 独自のボタン・カードを作らず `@/components/ui/*` を使う
+- **色を直接書かない。** `index.css` のテーマ変数（`--primary` / `--color-protein` 等）経由で参照する。
+  直接書くと `useTheme` のテーマ切替で破綻する
+- トーストは `sonner`、グラフは `recharts`
+- **数値欄は `MeasureField`**（`@/components/inputs`）。`<input type="number">` を直接置かない。
+  値は文字列で渡す（空欄と 0 を区別するため）。→ ADR #18
 
 ## ロジックの置き場所
 
 コンポーネントは表示に集中させ、状態遷移や計算はカスタムフックへ切り出す（`useMenuBuilder` が例）。
 フックは DOM に依存しないため単体テストが書きやすい。
 
-メモ化（`useMemo` / `useCallback`）は再レンダリングのコストが実際にある箇所に使う。無条件に全部包まない。
+メモ化は再レンダリングのコストが実際にある箇所だけに使う。無条件に全部包まない。
 
 ## API 通信
 
-`@/lib/axios` の `apiClient` を使う。`axios` を直接 import しない。
-リクエストインターセプタが `localStorage` のトークンを `Authorization: Token ...` として付与し、
+`@/lib/axios` の `apiClient` を使う（`axios` を直接 import しない）。
+リクエストインターセプタが `localStorage` のトークンを付与し、
 レスポンスインターセプタが 401 でトークンを消してトップへ飛ばす。
 
 ## テスト
 
-Vitest + React Testing Library。テストは対象と同じ階層の `__tests__/` にコロケーション配置する
-（`features/meals/api/__tests__/mealApi.test.ts` のように）。
+Vitest + React Testing Library。テストは対象と同じ階層の `__tests__/` に置く。
 
 ```bash
-npm run test:run        # 一度だけ実行
-npm run test            # watch
-npm run test:coverage   # カバレッジ
+npm run test:run        # 一度だけ実行（watch は npm run test）
 ```
 
 ## 既知の落とし穴
 
-**日付整形に `toISOString()` を使わない。** UTC に変換されるため、日本時間の深夜だと前日になる。
-食事記録は日付が主キー的な意味を持つため1日ずれると別の日に入る。
+**日付は `@/lib/date` の `getLocalDateString()` を使う。**
+`toISOString()` は UTC 変換のため日本時間の深夜に前日へずれる。
+食事記録は日付が主キー的な意味を持つので、1日ずれると別の日に入る。
 
-```typescript
-const y = date.getFullYear();
-const m = String(date.getMonth() + 1).padStart(2, '0');
-const d = String(date.getDate()).padStart(2, '0');
-const dateStr = `${y}-${m}-${d}`;
-```
+**要素の取得は `getByText` ではなく `getByRole`。**
+`getByText('保存')` は複数一致で "Found multiple elements" になる。
 
-**複数箇所に現れる要素は `getByText` ではなく `getByRole` で取得する。**
-`screen.getByRole('button', { name: '保存' })`（`getByText('保存')` は "Found multiple elements" で落ちる）。
-
-**npm パッケージを追加したら anonymous volume を消す。** `/app/node_modules` の volume が残っていると
-再ビルドしても反映されない。
+**npm パッケージ追加後は anonymous volume を消す。** 残っていると再ビルドしても反映されない。
 
 ```bash
-docker compose rm -v -f frontend    # ★ -v を忘れない
-docker compose up -d --build frontend
+docker compose rm -v -f frontend && docker compose up -d --build frontend   # ★ -v 必須
 ```
 
-**Vite の環境変数はビルド時に静的置換される。** コンテナ起動後に設定しても効かない。値を変えたら再ビルド。
-変数名は `src/lib/axios.ts` が読む `VITE_API_BASE_URL` に揃える。
+**`VITE_` 変数はビルド時に静的置換される。** 起動後に設定しても効かず、値を変えたら再ビルドが要る
+（`VITE_API_BASE_URL` / `VITE_GOOGLE_CLIENT_ID`）。増やしたら `.env.production.example` にも追記する。
 
-開発時は Vite の `server.proxy` が `/api` を `http://backend:8000` へ転送するため、
-**本番と同じ同一オリジン**で動作する。CORS の挙動差で本番だけ壊れる事態を避けるための構成。
+開発時は Vite の `server.proxy` が `/api` を backend へ転送し、**本番と同じ同一オリジン**で動く。
+CORS の挙動差で本番だけ壊れる事態を避けるための構成。

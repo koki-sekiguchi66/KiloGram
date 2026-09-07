@@ -37,35 +37,16 @@ docker compose -f docker-compose.production.yml ps   # db(healthy)/backend/mcp/n
 docker compose -f docker-compose.production.yml logs --tail=100 backend mcp
 ```
 
-### 必ず引っかかる3点
+### 必ず引っかかる4点
 
-- **nginx の restart を忘れない。** `upstream` の名前解決は起動時の一度きりで、
-  以後 IP をキャッシュする。backend / mcp を作り直すと古い IP に繋ぎ続け、502 になる
-- **ビルド時変数を変えたら再ビルドする。** `VITE_API_BASE_URL` / `VITE_GOOGLE_CLIENT_ID` は
-  Vite が**ビルド時に埋め込む**。`.env` を書き換えて `up -d` しても反映されない
-
-  ```bash
-  docker compose -f docker-compose.production.yml build nginx
-  docker compose -f docker-compose.production.yml up -d nginx
-  ```
-
-- **`nginx/conf.d/dishboard.conf` は `git pull` で衝突する。**
-  ドメイン置換のローカル差分を持つため（ADR #25）。
-  `git stash push nginx/conf.d/dishboard.conf` → `git pull` → `git stash pop`
+| 落とし穴 | 対処 |
+|---|---|
+| nginx の restart 忘れ → **502** | `upstream` の名前解決は起動時の一度きり。backend/mcp を作り直すと古い IP に繋ぎ続ける |
+| `VITE_` 変数を変えたのに反映されない | Vite は**ビルド時に埋め込む**。`build nginx` → `up -d nginx` が必要 |
+| `nginx/conf.d/dishboard.conf` が `git pull` で衝突 | ドメイン置換のローカル差分（ADR #25）。`git stash push <file>` → `pull` → `stash pop` |
+| `\` の後ろの空白で改行継続が切れる | `docker buildx build requires 1 argument` 等になる。**本番コマンドは1行で書く** |
 
 `docs/` は `.gitignore` 済みなので `git pull` では VM に降りてこない。
-
-### 複数行コマンドの事故を避ける
-
-Bash の `\` は**直後に空白があると改行継続にならない**。
-チャットや Markdown からコピーすると混入しやすく、
-`docker buildx build requires 1 argument` のような分かりにくいエラーになる。
-
-**本番で叩くコマンドは、可能な限り1行で書く。**
-
-```bash
-docker compose -f docker-compose.production.yml run --rm backend python manage.py migrate
-```
 
 ## B. 初期構築で必ず踏む2つの罠
 
@@ -154,18 +135,11 @@ docker compose -f docker-compose.production.yml exec db \
 
 ## E-0. MCP / Google ログインを有効にする
 
-### OAuth 認可用サブドメイン（ADR #26）
-
-**PWA と同じオリジンで OAuth 認可を提供してはいけない。**
-Android がインストール済み PWA へのリンクを OS レベルで横取りし、
-スマホの Claude アプリから認可画面に到達できなくなる。
-
-1. DuckDNS で認可専用サブドメインを追加取得し、同じ VM の IP を登録する
-2. IP 更新 cron にもこのサブドメインを足す
-3. 証明書を取得する（nginx は起動済みなので §B-1 の回避手順は不要）
-4. `nginx/conf.d/dishboard.conf` の `<auth-sub>.duckdns.org` を置換する
-
-### `.env`
+**PWA と同じオリジンで OAuth 認可を提供してはいけない**（ADR #26）。
+Android が PWA へのリンクを OS レベルで横取りし、スマホの Claude アプリから
+認可画面に到達できなくなる。認可専用サブドメインを取得し、
+IP 更新 cron と証明書を追加してから `nginx/conf.d/dishboard.conf` の
+`<auth-sub>.duckdns.org` を置換する（nginx は起動済みなので §B-1 は不要）。
 
 ```bash
 MCP_RESOURCE_URL=https://<sub>.duckdns.org/mcp        # Claude に登録する URL と完全一致
@@ -173,15 +147,14 @@ OAUTH2_ISSUER_URL=https://<auth-sub>.duckdns.org      # PWA と別オリジン�
 GOOGLE_CLIENT_ID=<client-id>.apps.googleusercontent.com
 VITE_GOOGLE_CLIENT_ID=<同じ値>
 
-# 認可用サブドメインを足し忘れると 400 / CSRF エラーになる
+# 認可用サブドメインの足し忘れは 400 / CSRF エラーになる
 ALLOWED_HOSTS=<sub>.duckdns.org,<auth-sub>.duckdns.org
 CSRF_TRUSTED_ORIGINS=https://<sub>.duckdns.org,https://<auth-sub>.duckdns.org
 ```
 
 `CORS_ALLOWED_ORIGINS` は SPA の API 呼び出し用なので認可用サブドメインは**不要**。
-
-Google Cloud Console の「承認済み JavaScript 生成元」には、
-**PWA と認可用サブドメインの両方**を登録する（パス・末尾スラッシュは付けない）。
+Google Cloud Console の「承認済み JavaScript 生成元」には
+**PWA と認可用サブドメインの両方**を登録する（パス・末尾スラッシュ無し）。
 
 ### 疎通確認（Claude に登録する前に）
 
@@ -190,14 +163,10 @@ curl -s https://<sub>.duckdns.org/.well-known/oauth-protected-resource
 curl -s https://<auth-sub>.duckdns.org/.well-known/oauth-authorization-server
 ```
 
-両方 **JSON** が返ること。HTML が返るなら nginx 設定が効いていない。
-PRM の `resource` が `MCP_RESOURCE_URL` と完全一致していること（1文字でも違うと接続しない）。
+両方 **JSON** が返り、PRM の `resource` が `MCP_RESOURCE_URL` と**完全一致**すること
+（1文字でも違うと接続しない）。HTML が返るなら nginx 設定が効いていない。
 
-### ログから切り分ける
-
-```bash
-docker compose -f docker-compose.production.yml logs -f nginx
-```
+### ログから切り分ける（`logs -f nginx`）
 
 | 症状 | 見るべき所 |
 |---|---|

@@ -7,6 +7,8 @@ record_app/
   models.py            モデル定義・インデックス・制約
   serializers.py       入出力の変換とバリデーション。ネストした items の作成/更新もここ
   views.py             HTTP の入出力と権限のみ。計算ロジックを書かない
+  auth_views.py        セッション認証まわり（OAuth 認可画面用の Google ログイン）
+  google_auth.py       Google ID トークンの検証とユーザー解決
   services.py          複数モデルにまたがる操作。@transaction.atomic で境界を明示
   business_logic/      HTTP を知らない純粋なドメイン処理
     nutrition_calculator.py   食品検索・栄養計算・日次サマリー
@@ -17,7 +19,9 @@ record_app/
 
 - `business_logic/` から `request` / `Response` に触らない。引数と戻り値は素の Python 値
 - `services.py` は「複数モデルを1トランザクションで操作する」ものだけ。単一モデルの CRUD は ViewSet で足りる
-- ViewSet は必ず `get_queryset()` で `filter(user=self.request.user)` する（ユーザー間のデータ分離）
+- **ViewSet は必ず `get_queryset()` で `filter(user=self.request.user)`**（ユーザー間のデータ分離）
+- **`food_id` のように呼び出し元から渡る ID は、必ず user で絞ってから引く。**
+  過去にこれを怠り、他ユーザーの Myアイテムの栄養値が引ける不具合を出している
 
 ## MCP 層（`mcp_server/`）
 
@@ -35,70 +39,79 @@ mcp_server/
   asgi.py          uvicorn のエントリポイント
 ```
 
-- **MCP 層にドメインロジックを書かない。** 計算・検索・集計は `business_logic/` に置く
+- **MCP 層にドメインロジックを書かない。** 計算・検索・集計は `business_logic/` へ
 - ツールは必ず `context.resolve_user()` でユーザーを解決し、以降のクエリをそのユーザーで絞る。
-  ここを迂回すると他ユーザーのデータが見える
+  **迂回すると他ユーザーのデータが見える**
 - 他ユーザーのリソースを指定されたら `NotFoundError`（404 相当）。403 だと存在が漏れる
-- ツールは FastMCP のデコレータを付けず素の関数にする。登録は `server.py` の `add_tool()` で行う
-  （テストからトランスポートを起動せずに直接呼べるようにするため）
+- ツールは FastMCP のデコレータを付けず素の関数にし、`server.py` の `add_tool()` で登録する
+  （テストからトランスポートを起動せず直接呼べるようにするため）
 - `django_setup.py` を import 時に呼ばない。呼ぶのは `asgi.py` だけ
 - ツールの description は **Claude が読む唯一の仕様書**。単位・副作用の有無・日付形式を必ず書く
 - 既存の `/api/` 向けメソッドを MCP のために書き換えない。必要なら別メソッドを足す
 
-## 栄養データのスナップショット設計 ★壊さないこと
+## 認証
 
-`MealRecordItem` / `CustomMenuItem` は、栄養値を**記録時点の実数値としてそのまま保存**する。
-`StandardFood` への FK は張らず、`item_type` + `item_id` + `item_name` で参照元を記録するだけに留める。
+3系統が並存する。**混同しないこと**（→ `docs-public/google-authentication.md`）。
 
-食品DBが更新されても、過去の記録の栄養値が変わってはいけないため。
-**この設計を「正規化されていない」として直さないこと。**意図的な非正規化である。
+| 経路 | 認証方式 |
+|---|---|
+| React PWA → `/api/` | DRF Token |
+| OAuth 認可画面（django-oauth-toolkit） | Django セッション |
+| Claude → `/mcp` | DOT が発行した OAuth access token |
 
-## 集計は事前計算する
+- Google の identity は**メールではなく `subject`** で識別する。メール一致で自動連携しない（ADR #27）
+- credential / token / 健康情報（体重・食事内容・OCR 結果）を**ログへ出さない**
 
-`CustomMenu` の `total_*` フィールドのように、集計値はカラムに持って書き込み時に更新する。
-更新は `calculate_totals()`（`aggregate()` で1クエリ）を呼び、Python のループで足し込まない。
-読み取りのたびに集計クエリを走らせる設計にしないこと。
+## 壊してはいけない設計
 
-## 食品検索
+**栄養データのスナップショット** — `MealRecordItem` / `CustomMenuItem` は栄養値を記録時点の
+実数値で保存する。`StandardFood` への FK を張らず `item_type` + `item_id` + `item_name` で
+参照元だけ残す。食品DBが更新されても過去の記録が変わってはいけないため。
+**「正規化されていない」として直さないこと。意図的な非正規化である。**
 
-PostgreSQL の pg_trgm によるトリグラム類似度検索（`TrigramSimilarity`）。
-`StandardFood.name` に `GinIndex(opclasses=['gin_trgm_ops'])` が張ってある。
-拡張の有効化はマイグレーション `0006_enable_pg_trgm` で行っている。
+**集計の事前計算** — `CustomMenu.total_*` のように集計値はカラムに持ち、書き込み時に
+`calculate_totals()`（`aggregate()` で1クエリ）で更新する。Python のループで足し込まない。
+読み取りのたびに集計する設計にしない。
 
-類似度の閾値（0.08）は意図的に緩い。ここは「足切り」であって「ランキング」ではなく、
-精度は後段のキーワード部分一致で担保している。閾値だけを見て厳しくしないこと。
+**食品検索の閾値** — pg_trgm のトリグラム類似度（`TrigramSimilarity`）。閾値 0.08 は
+意図的に緩い。ここは「足切り」であって「ランキング」ではなく、精度は後段のキーワード
+部分一致で担保している。**閾値だけを見て厳しくしない。**
+拡張の有効化はマイグレーション `0006_enable_pg_trgm`。
 
 ## クエリ
 
-- 明細を伴う取得は `prefetch_related('items')`。一覧で明細が不要なら `annotate(Count('items'))` で件数だけ取る（`MealRecordViewSet.get_queryset()` が例）
-- 新しいクエリパターンを追加したら、対応する複合インデックスが必要か検討する
+- 明細を伴う取得は `prefetch_related('items')`。一覧で明細が不要なら
+  `annotate(Count('items'))` で件数だけ取る（`MealRecordViewSet.get_queryset()` が例）
+- 新しいクエリパターンを足したら、複合インデックスが必要か検討する
 
 ## テスト
 
-pytest + pytest-django。設定は `pytest.ini`（`DJANGO_SETTINGS_MODULE=dishboard_project.settings.development`）。
+pytest + pytest-django（`pytest.ini` で `DJANGO_SETTINGS_MODULE=...settings.development`）。
 
-- **PostgreSQL が必須**。`docker compose up -d db` してから実行する。SQLite では `django.contrib.postgres` と pg_trgm が動かない
+- **PostgreSQL が必須**（`docker compose up -d db`）。SQLite では pg_trgm が動かない
 - ファイルは `record_app/tests/test_<機能>.py`、共通フィクスチャは `conftest.py`
-- `conftest.py` での Django モデル import は安全。**`__init__.py` での import は危険**（pytest-django が settings を初期化する前に評価されうる）
-- 外部サービス（Azure Vision / スクレイピング対象サイト）は必ずモックする
-- OCR は `NutritionOCRProcessor._extract_lines` を `patch.object` でモックし、テキスト行のリストを返させる（Azure SDK のレスポンス構造に依存させない）
+- `conftest.py` での Django モデル import は安全。**`__init__.py` での import は危険**
+  （pytest-django が settings を初期化する前に評価されうる）
+- 外部サービス（Azure Vision / Google tokeninfo / スクレイピング先）は**必ずモックする**
+- OCR は `NutritionOCRProcessor._extract_lines` を `patch.object` でモックする
+  （Azure SDK のレスポンス構造に依存させないため）
 
 ## 管理コマンド
 
 | コマンド | 用途 |
 |---|---|
-| `load_standard_foods <csv>` | 文科省食品標準成分表 CSV の投入（`update_or_create` で冪等） |
-| `update_cafeteria_menus` | 学食メニューのスクレイピング更新。GitHub Actions cron から SSH 経由で実行される |
+| `load_standard_foods <csv>` | 食品標準成分表 CSV の投入（`update_or_create` で冪等） |
+| `update_cafeteria_menus` | 学食メニューの更新。GitHub Actions cron から SSH 経由で実行 |
 
 ## 設定
 
-`settings/` は `base.py` を `development.py` / `production.py` が継承。切替は環境変数 `DJANGO_ENV`。
-`resolve_db_host()` により、ホスト名 `db` が解決できなければ `localhost` にフォールバックする
+`settings/` は `base.py` を `development.py` / `production.py` / `mcp.py` が継承（`DJANGO_ENV` で切替）。
+`resolve_db_host()` はホスト名 `db` が解決できなければ `localhost` にフォールバックする
 （Docker 経由でもホスト直実行でも同じ設定で動かすため）。
 
 ## docstring
 
-クラスと主要メソッドに日本語で付ける。「何をするか」に加え、非自明な前提を書く。
+クラスと主要メソッドに日本語で付ける。「何をするか」に加え**非自明な前提**を書く。
 
 ```python
 class MealRecordItem(models.Model):
