@@ -16,12 +16,12 @@ from rest_framework.permissions import AllowAny
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu, CustomMenu, GoogleAccount
+from .models import MealRecord, WeightRecord, CustomFood, CafeteriaMenu, CustomMenu, GoogleAccount, NutritionGoal
 from .serializers import (
     MealRecordSerializer, MealRecordListSerializer,
     UserRegistrationSerializer, UserProfileSerializer, WeightRecordSerializer,
     CustomFoodSerializer, CafeteriaMenuSerializer,
-    CustomMenuSerializer, CustomMenuListSerializer
+    CustomMenuSerializer, CustomMenuListSerializer, NutritionGoalSerializer
 )
 from .business_logic.nutrition_calculator import NutritionCalculatorService
 from .services import MealService, WeightService, CustomFoodService
@@ -299,6 +299,28 @@ class UserProfileView(generics.RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
+
+
+class NutritionGoalView(APIView):
+    """栄養目標値の取得と保存。
+
+    未設定の利用者にも既定値を返すため、GET では行を作らず未保存のインスタンスを
+    シリアライズする。既定値をフロントに持たせると、Web と MCP で別の目標を
+    参照しうるため、既定値はモデル側に一本化している。
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        goal = NutritionGoal.objects.filter(user=request.user).first() or NutritionGoal()
+        return Response(NutritionGoalSerializer(goal).data)
+
+    def put(self, request):
+        serializer = NutritionGoalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        NutritionGoal.objects.update_or_create(
+            user=request.user, defaults=serializer.validated_data
+        )
+        return Response(serializer.data)
 
 
 class LogoutView(APIView):

@@ -1,41 +1,29 @@
 /**
  * useGoalSettings — 栄養目標値の永続化フック
  *
- * GoalSettings と、目標値を表示する Dashboard / RecordTab / PFCSummary の双方から呼ばれる。
- *
- * 設計判断:
- *   - localStorage に直接アクセス（サーバー側への永続化は未実装）
- *   - useState の lazy initializer で初回マウント時のみ I/O
- *   - 部分破損データへの防御（一部のキーだけ正常な JSON でもフォールバック）
- *   - localStorage.setItem の例外（容量超過等）は握り潰す
- *     → UI 上の値は更新するが永続化失敗、というデグレード許容
+ * 保存先はサーバー。localStorage は「オフライン用のキャッシュ」として併用する（ADR #28）。
+ *   - 初回は localStorage を即座に表示し、サーバー取得後に上書きする（ちらつき防止）
+ *   - 保存は楽観更新。サーバーが失敗してもローカルには残す（PWA はオフラインで動く）
  *
  * なぜ Context を使わないか:
- *   現状 goals を必要とするのは Dashboard 系統のみ。Settings ↔ Record は
- *   Dashboard を介して props 伝搬可能で、Context のオーバーヘッドは不要（YAGNI）。
- *   ただし、Dashboard と Settings で別インスタンスのフックが動くため、
- *   片方の更新が他方に伝播しない点には注意（同一画面で同時表示しないため問題なし）。
+ *   goals を必要とするのは Dashboard 系統のみで、props 伝搬で足りる（YAGNI）。
  */
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   type NutritionGoals,
   DEFAULT_GOALS,
   STORAGE_KEY_GOALS,
 } from "@/types/settings";
+import { goalApi } from "../api/goalApi";
 
-/**
- * localStorage から goals を読み取り、不正値は DEFAULT_GOALS にフォールバックする。
- * モジュールスコープに切り出すことで、useState の lazy initializer から
- * 1回だけ呼ばれる純粋関数として再利用しやすくしている。
- */
-function loadGoalsFromStorage(): NutritionGoals {
+/** localStorage から読み、壊れていれば既定値へ落とす。キー単位で防御する。 */
+function loadCachedGoals(): NutritionGoals {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_GOALS);
     if (!raw) return DEFAULT_GOALS;
 
     const parsed = JSON.parse(raw) as Partial<Record<keyof NutritionGoals, unknown>>;
 
-    // 各キーごとに型チェックし、不正なら DEFAULT を採用
     return {
       calories:
         typeof parsed.calories === "number" ? parsed.calories : DEFAULT_GOALS.calories,
@@ -45,8 +33,16 @@ function loadGoalsFromStorage(): NutritionGoals {
       carbs: typeof parsed.carbs === "number" ? parsed.carbs : DEFAULT_GOALS.carbs,
     };
   } catch {
-    // JSON.parse 失敗、localStorage 例外などすべてここで吸収
     return DEFAULT_GOALS;
+  }
+}
+
+/** 永続化は best-effort。容量超過などで失敗しても UI は動かす。 */
+function cacheGoals(goals: NutritionGoals): void {
+  try {
+    localStorage.setItem(STORAGE_KEY_GOALS, JSON.stringify(goals));
+  } catch {
+    // QuotaExceededError 等。キャッシュなので失われても致命的ではない
   }
 }
 
@@ -56,20 +52,39 @@ interface UseGoalSettingsReturn {
 }
 
 export function useGoalSettings(): UseGoalSettingsReturn {
-  // lazy initializer で初回マウント時のみ localStorage を読む
-  const [goals, setGoals] = useState<NutritionGoals>(loadGoalsFromStorage);
+  const [goals, setGoals] = useState<NutritionGoals>(loadCachedGoals);
+  // 初回取得が編集より後に届くと、利用者の入力を古い値で潰してしまうため
+  const editedRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    goalApi
+      .getGoals()
+      .then((serverGoals) => {
+        if (cancelled || editedRef.current) return;
+        setGoals(serverGoals);
+        cacheGoals(serverGoals);
+      })
+      .catch(() => {
+        // オフラインやサーバー障害。キャッシュ済みの値で動かし続ける
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const updateGoals = useCallback((next: NutritionGoals) => {
-    // state は常に更新（UI の即時反映を優先）
-    setGoals(next);
+    editedRef.current = true;
 
-    // 永続化は best-effort。失敗してもクラッシュしない
-    try {
-      localStorage.setItem(STORAGE_KEY_GOALS, JSON.stringify(next));
-    } catch (err) {
-      // QuotaExceededError 等。ユーザーへの通知は呼び出し側の責務
-      console.error("Failed to persist goals to localStorage", err);
-    }
+    // 楽観更新。保存の成否を待たず UI を進める
+    setGoals(next);
+    cacheGoals(next);
+
+    goalApi.updateGoals(next).catch(() => {
+      // サーバー保存に失敗しても、次回オンライン時の保存で追いつく
+    });
   }, []);
 
   return { goals, updateGoals };

@@ -153,6 +153,28 @@ class GoogleAccount(models.Model):
         return f'{self.user.username} - {self.email}'
 
 
+class NutritionGoal(models.Model):
+    """利用者ごとの1日あたりの栄養目標値。
+
+    端末を変えても引き継げるようサーバーで保持する。既定値はフロントではなく
+    ここで持ち、未設定の利用者にも同じ値を返す（MCP からも同じ目標を参照するため）。
+    """
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='nutrition_goal')
+    calories = models.FloatField(default=2000, verbose_name='エネルギー(kcal)')
+    protein = models.FloatField(default=100, verbose_name='たんぱく質(g)')
+    fat = models.FloatField(default=56, verbose_name='脂質(g)')
+    carbs = models.FloatField(default=275, verbose_name='炭水化物(g)')
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = '栄養目標値'
+        verbose_name_plural = '栄養目標値'
+
+    def __str__(self):
+        return f'{self.user.username} - {self.calories}kcal'
+
+
 class StandardFood(models.Model):
     """文科省食品標準成分表の食品情報"""
 

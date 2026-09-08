@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import MealRecord, MealRecordItem, CustomMenu, CustomMenuItem, CustomFood, WeightRecord, CafeteriaMenu
+from .models import MealRecord, MealRecordItem, CustomMenu, CustomMenuItem, CustomFood, WeightRecord, CafeteriaMenu, NutritionGoal
 from django.contrib.auth.models import User
 from django.db import transaction
 
@@ -201,4 +201,22 @@ class CustomMenuListSerializer(serializers.ModelSerializer):
         ]
     
     def get_items_count(self, obj):
-        return obj.items.count()
+        # count() は prefetch_related のキャッシュを使わず行数ぶん COUNT を発行する
+        return len(obj.items.all())
+
+
+class NutritionGoalSerializer(serializers.ModelSerializer):
+    """1日あたりの栄養目標値。user は view 側で解決するため公開しない。"""
+
+    class Meta:
+        model = NutritionGoal
+        fields = ['calories', 'protein', 'fat', 'carbs']
+
+    def validate(self, attrs):
+        # 目標値が負になることはない。0 は「設定しない」の意味で許す
+        negatives = [name for name, value in attrs.items() if value < 0]
+        if negatives:
+            raise serializers.ValidationError(
+                {name: '0 以上の値を指定してください' for name in negatives}
+            )
+        return attrs
