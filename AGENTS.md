@@ -77,6 +77,9 @@ cd frontend && npx tsc --noEmit && npm run test:run
 
 - [ ] `CLAUDE.md` の「絶対的な制約」に反していない
 - [ ] 該当する Skill の手順を踏んだ
-- [ ] 設計判断をしたなら `docs-public/decisions.md` に ADR を足した
+- [ ] **ドキュメントを更新した**（実装はここまでで完了）
+  - [ ] 「未実装」「できない」と書いていた記述が嘘になっていないか grep で確認した
+  - [ ] `docs-public/decisions.md` の「今後の課題」から解消した行を消した
+  - [ ] 設計判断をしたなら ADR を足した（過去の ADR は書き換えず、関係を追記する）
 - [ ] `git status` に `docs/` や `.env` が含まれていない
 - [ ] コミットメッセージが日本語で、`Co-Authored-By` を含まない
