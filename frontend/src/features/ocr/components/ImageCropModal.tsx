@@ -15,7 +15,6 @@ interface DragState {
 /** 撮影画像の上でリサイズ可能な枠を操作させ、枠内を切り出して OCR に渡す。 */
 const ImageCropModal = ({ show, imageBlob, onClose, onCrop }: { show: boolean; imageBlob: Blob | null; onClose: () => void; onCrop: (blob: Blob) => void }) => {
   const [imageUrl, setImageUrl] = useState('');
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [cropBox, setCropBox] = useState({
@@ -62,12 +61,6 @@ const ImageCropModal = ({ show, imageBlob, onClose, onCrop }: { show: boolean; i
 
     const updateSize = () => {
       const rect = containerRef.current!.getBoundingClientRect();
-      console.log('[ImageCropModal] Container size:', rect.width, rect.height);
-
-      setContainerSize({
-        width: rect.width,
-        height: rect.height,
-      });
 
       const initialBox = {
         x: rect.width * 0.1,
