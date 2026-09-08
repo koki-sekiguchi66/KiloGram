@@ -41,6 +41,10 @@ import X from '@/features/customFoods/components/EditCustomFoodModal'; // ❌
 - 独自のボタン・カードを作らず `@/components/ui/*` を使う
 - **色を直接書かない。** `index.css` のテーマ変数（`--primary` / `--color-protein` 等）経由で参照する。
   直接書くと `useTheme` のテーマ切替で破綻する
+- **見出し・日付・主要な数値は `.font-display`（明朝）。** 本文と入力欄はゴシックのまま。
+  `CardTitle` / `DialogTitle` は既に明朝なので、個別に指定しない → ADR #33
+- **画面で最も重要な1アクションだけ `<Button variant="brand" size="xl">`。**
+  1画面に複数置くと発光が意味を失う → ADR #33
 - トーストは `sonner`、グラフは `recharts`
 - **数値欄は `MeasureField`**（`@/components/inputs`）。`<input type="number">` を直接置かない。
   値は文字列で渡す（空欄と 0 を区別するため）。→ ADR #18

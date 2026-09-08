@@ -9,6 +9,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        /** 画面で最も重要な1アクション専用。1画面に複数置かない（ADR #33） */
+        brand:
+          "rounded-full bg-linear-to-r from-primary to-primary-soft text-primary-foreground glow-primary transition-[filter,transform] hover:brightness-110 active:scale-[0.99]",
         destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline: "border border-border bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground",
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
@@ -19,6 +22,7 @@ const buttonVariants = cva(
         default: "h-9 px-4 py-2",
         sm: "h-8 rounded-md px-3 text-xs",
         lg: "h-10 rounded-md px-8",
+        xl: "h-13 rounded-full px-8 text-base",
         icon: "h-9 w-9",
       },
     },

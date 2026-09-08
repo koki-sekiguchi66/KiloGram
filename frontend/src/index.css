@@ -8,48 +8,56 @@
 
 :root {
   /* ── Surface Colors ──
-   * 「食堂の掲示板」提案（docs-public/ui-design-proposal.md, ADR #21）の夜=黒板。
-   * shadcn/ui既定の色相286（青紫寄りグレー）から、色相55〜70（黒板の緑黒〜生成り）に寄せた。
+   * 「食堂の掲示板」提案（docs-public/ui-design-proposal.md, ADR #21）の夜=黒板を、
+   * 閉店後の暗い食堂まで落とし込んだ階調（ADR #33）。
    * 紙・黒板という参照色そのものを反映するため、oklchではなくhexで直接指定している。
    */
-  --background: #1c2420;
-  --foreground: #ede6d2;
-  --card: #26312a;
-  --card-foreground: #ede6d2;
-  --popover: #26312a;
-  --popover-foreground: #ede6d2;
+  --background: #0b100e;
+  --foreground: #f1ebdd;
+  --card: #131c17;
+  --card-foreground: #f1ebdd;
+  --popover: #131c17;
+  --popover-foreground: #f1ebdd;
 
   /* ── Brand Colors ──
-   * primary は元々色相16.57（赤というより朱色寄り）で、食券のスタンプ・鳥居の朱色として
-   * そのまま意味づけできるため変更しない（ADR #14の「ブランド一貫性のため据え置き」を継承）。
+   * 色相16.57の朱から色相11へ寄せ、暗い背景の上で沈まないよう明度を上げた（ADR #33）。
    */
-  --primary: oklch(0.607 0.213 16.57);
+  --primary: oklch(0.64 0.204 11);
+  /* brand ボタンのグラデーション終端。primary より明るいピンク寄り */
+  --primary-soft: oklch(0.705 0.185 4);
   --primary-foreground: oklch(1 0 0);
-  --secondary: #202b24;
-  --secondary-foreground: #ede6d2;
-  --accent: #202b24;
-  --accent-foreground: #ede6d2;
+  --secondary: #17211b;
+  --secondary-foreground: #f1ebdd;
+  --accent: #17211b;
+  --accent-foreground: #f1ebdd;
   --destructive: oklch(0.577 0.245 27.32);
   --destructive-foreground: oklch(1 0 0);
 
   /* ── Muted / Borders ── */
-  --muted: #202b24;
-  --muted-foreground: #9fae97;
-  --border: #3b4a3f;
-  --input: #3b4a3f;
-  --ring: oklch(0.607 0.213 16.57);
+  --muted: #17211b;
+  --muted-foreground: #8d9a8b;
+  --border: #29342d;
+  --input: #29342d;
+  --ring: oklch(0.64 0.204 11);
 
   /* ── 黒板パネル専用トークン（CharacterGreeting等） ──
    * ページ全体のforeground/muted-foregroundとは独立に定義する。
    * 黒板パネルは昼テーマでもページ背景より暗いため、ページ側トークンに連動させると
    * 昼テーマで暗い背景に暗い文字が重なり読めなくなる。
    */
-  --board: #14201a;
-  --board-foreground: #ede6d2;
-  --board-muted: #7e8c79;
+  --board: #101a15;
+  --board-foreground: #f1ebdd;
+  --board-muted: #7c8b7b;
+
+  /* ── 背景のオーラ（.bg-aura） ──
+   * 単色の背景だと画面全体が均一に沈む。上端に淡い緑の光源を1つ置いて奥行きを作る。
+   */
+  --aura:
+    radial-gradient(115% 62% at 50% -8%, #16332a 0%, transparent 62%),
+    radial-gradient(70% 40% at 50% -4%, color-mix(in srgb, var(--primary) 10%, transparent) 0%, transparent 70%);
 
   /* ── Radius ── */
-  --radius: 0.625rem;
+  --radius: 0.875rem;
 
   /* ── PFC (栄養素) 専用カラー ──
    * 意味づけ（protein=寒色 / fat=黄 / carbs=緑）は維持し、彩度を落として
@@ -86,36 +94,42 @@
 
 :root.light {
   /* ── Surface Colors ── */
-  --background: #e7dfc7;
-  --foreground: #2b2620;
-  --card: #f3edd9;
-  --card-foreground: #2b2620;
-  --popover: #f3edd9;
-  --popover-foreground: #2b2620;
+  --background: #ece5cf;
+  --foreground: #26221b;
+  --card: #f7f2e2;
+  --card-foreground: #26221b;
+  --popover: #f7f2e2;
+  --popover-foreground: #26221b;
 
   /* ── Brand Colors ── */
-  --primary: oklch(0.607 0.213 16.57);
+  --primary: oklch(0.575 0.204 11);
+  --primary-soft: oklch(0.635 0.185 4);
   --primary-foreground: oklch(1 0 0);
-  --secondary: #eadfbc;
-  --secondary-foreground: #2b2620;
-  --accent: #eadfbc;
-  --accent-foreground: #2b2620;
+  --secondary: #e4dabb;
+  --secondary-foreground: #26221b;
+  --accent: #e4dabb;
+  --accent-foreground: #26221b;
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(1 0 0);
 
   /* ── Muted / Borders ── */
-  --muted: #eadfbc;
+  --muted: #e4dabb;
   --muted-foreground: #6b6152;
-  --border: #c9bc94;
-  --input: #c9bc94;
-  --ring: #453f30;
+  --border: #cec19b;
+  --input: #cec19b;
+  --ring: oklch(0.575 0.204 11);
 
   /* ── 黒板パネル専用トークン ──
    * 昼テーマでも黒板は変わらず暗い（コルクボードに掛かった黒板、という物理メタファー）。
    */
-  --board: #2b372e;
-  --board-foreground: #ede6d2;
+  --board: #1d2a23;
+  --board-foreground: #f1ebdd;
   --board-muted: #9fae97;
+
+  /* 昼は光源を上からの陽射しとして白で置く */
+  --aura:
+    radial-gradient(115% 62% at 50% -8%, #fdf9ec 0%, transparent 58%),
+    radial-gradient(70% 40% at 50% -4%, color-mix(in srgb, var(--primary) 7%, transparent) 0%, transparent 70%);
 }
 
 /* Tailwind テーマ　*/
@@ -129,6 +143,7 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -165,6 +180,35 @@
 
   /* Font Family */
   --font-sans: "Noto Sans JP", system-ui, sans-serif;
+  --font-serif: "Noto Serif JP", "Hiragino Mincho ProN", serif;
+}
+
+/* ── 背景のオーラ（ADR #33） ──
+ * 光源つきの背景。ページ全体（AppShell）と認証画面に敷く。
+ * 内容のスクロールで光源が動くと落ち着かないため fixed で固定する。
+ */
+.bg-aura {
+  background-color: var(--background);
+  background-image: var(--aura);
+  background-attachment: fixed;
+}
+
+/* ── 見出し用の明朝（ADR #33） ──
+ * 和文明朝は字面が小さく見えるため、見出しに使うときだけ字間を開ける。
+ */
+.font-display {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+/* ── 主要アクションの発光（ADR #33） ──
+ * 暗い画面で「押す場所」を1つに絞るための、primary のみに許す表現。
+ */
+.glow-primary {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--primary) 35%, transparent),
+    0 10px 30px -8px color-mix(in srgb, var(--primary) 55%, transparent);
 }
 
 /* ── 家計簿ふうの罫線背景（分析ページ用、ADR #21） ──

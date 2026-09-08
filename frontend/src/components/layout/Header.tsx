@@ -4,6 +4,7 @@
  * 設計判断:
  *   Claude スマホアプリと同様、ヘッダー左上のハンバーガーアイコンで
  *   サイドバーを開閉する。モバイルファーストのナビゲーションパターン。
+ *   右側のタグラインはアプリの性格を伝えるためだけの静的な要素で、操作は持たせない。
  */
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,10 +16,10 @@ interface HeaderProps {
 
 export function Header({ onMenuOpen }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
+    <header className="sticky top-0 z-40 border-b border-border/50 bg-background/70 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-lg items-center justify-between gap-3 px-4">
         {/* 左: ハンバーガーメニュー + アプリ名 */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
@@ -28,14 +29,18 @@ export function Header({ onMenuOpen }: HeaderProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-bold tracking-tight">
+          <h1 className="text-xl font-bold tracking-tight">
             <span className="text-primary">Dish</span>
             <span className="text-foreground">Board</span>
           </h1>
         </div>
 
-        {/* 右: 将来的に通知アイコン等を配置 */}
-        <div className="w-10" />
+        {/* 右: タグライン */}
+        <p className="text-[10px] leading-tight text-muted-foreground">
+          食で、
+          <br />
+          いい一日をつくる。
+        </p>
       </div>
     </header>
   );

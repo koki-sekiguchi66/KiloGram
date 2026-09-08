@@ -57,7 +57,7 @@ export function AppShell({
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="bg-aura min-h-screen text-foreground">
       <Header onMenuOpen={() => setSidebarOpen(true)} />
       <Sidebar
         open={sidebarOpen}
@@ -66,9 +66,13 @@ export function AppShell({
         onNavigate={setActivePage}
         onLogout={onLogout}
       />
-      <main className="mx-auto max-w-lg px-4 pt-4">
+      <main className="mx-auto max-w-lg px-4 pt-6 pb-10">
         {renderContent()}
       </main>
+      <footer className="mx-auto flex max-w-lg items-end justify-between px-4 pb-8 text-muted-foreground">
+        <p className="text-xs">食で、いい自分をつくる。</p>
+        <p className="font-display text-sm opacity-60">DishBoard</p>
+      </footer>
     </div>
   );
 }

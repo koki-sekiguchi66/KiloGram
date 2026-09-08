@@ -66,10 +66,10 @@ export function Sidebar({
     <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <SheetContent
         side="left"
-        className="flex w-72 flex-col bg-background p-0"
+        className="bg-aura flex w-72 flex-col p-0"
       >
         {/* ── ヘッダー: アプリ名 ── */}
-        <SheetHeader className="border-b border-border px-6 py-5">
+        <SheetHeader className="border-b border-border/50 px-6 py-6">
           <SheetTitle className="text-xl font-bold tracking-tight">
             <span className="text-primary">Dish</span>
             <span className="text-foreground">Board</span>
@@ -90,7 +90,7 @@ export function Sidebar({
                     onClick={() => handleNavigate(id)}
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                      "flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors",
                       isActive
                         ? "bg-primary/10 text-primary"
                         : "text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -106,7 +106,7 @@ export function Sidebar({
         </nav>
 
         {/* ── フッター: ログアウト ── */}
-        <div className="border-t border-border px-3 py-4">
+        <div className="border-t border-border/50 px-3 py-4">
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
