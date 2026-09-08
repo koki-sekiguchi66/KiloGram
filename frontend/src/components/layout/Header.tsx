@@ -17,7 +17,7 @@ interface HeaderProps {
 export function Header({ onMenuOpen }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/30 bg-background/70 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-xl items-center justify-between gap-3 px-5">
+      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-3 px-5">
         {/* 左: ハンバーガーメニュー + アプリ名 */}
         <div className="flex items-center gap-1">
           <Button

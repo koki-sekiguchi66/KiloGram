@@ -73,13 +73,13 @@ const Dashboard = ({ handleLogout }: DashboardProps) => {
   const weightFormSlot = useMemo(
     () => (
       <div>
-        <div className="mb-5 flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-border/40 text-foreground">
-            <ScaleGaugeIcon className="h-5 w-5" />
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border/40 text-foreground">
+            <ScaleGaugeIcon className="h-4 w-4" />
           </span>
-          <div>
-            <h2 className="font-display text-xl">体重</h2>
-            <p className="text-xs text-muted-foreground">
+          <div className="min-w-0">
+            <h2 className="font-display text-lg">体重</h2>
+            <p className="truncate text-xs text-muted-foreground">
               今日の体重を記録して、からだの変化を見てみましょう。
             </p>
           </div>

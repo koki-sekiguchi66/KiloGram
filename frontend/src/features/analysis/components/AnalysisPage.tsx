@@ -55,15 +55,18 @@ export function AnalysisPage({ allMeals, weights, dailySummary }: AnalysisPagePr
 
       <WeeklyTrend meals={allMeals} />
 
-      <Section title="今日の目標達成状況">
-        <div className="bg-ledger rounded-2xl px-4 py-3">
-          <PFCProgressBar current={currentNutrition} />
-        </div>
-      </Section>
+      {/* 広い画面では2列に畳む。1列のまま伸ばすとグラフの横幅が間延びする */}
+      <div className="grid gap-8 lg:grid-cols-2 lg:gap-x-10">
+        <Section title="今日の目標達成状況">
+          <div className="bg-ledger rounded-2xl px-4 py-3">
+            <PFCProgressBar current={currentNutrition} />
+          </div>
+        </Section>
 
-      <HeatmapCalendar meals={allMeals} />
-      <CalorieChart meals={allMeals} />
-      <WeightChart weights={weights} />
+        <HeatmapCalendar meals={allMeals} />
+        <CalorieChart meals={allMeals} />
+        <WeightChart weights={weights} />
+      </div>
     </div>
   );
 }

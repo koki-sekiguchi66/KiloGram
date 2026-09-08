@@ -19,7 +19,10 @@ import { AppearanceSettings } from "./AppearanceSettings";
 
 export function SettingsPage() {
   return (
-    <div className="flex flex-col gap-8" data-testid="settings-page">
+    <div
+      className="mx-auto flex w-full max-w-2xl flex-col gap-8"
+      data-testid="settings-page"
+    >
       <header>
         <span className="block h-px w-10 bg-primary" aria-hidden="true" />
         <h2 className="font-display mt-5 text-4xl">設定</h2>

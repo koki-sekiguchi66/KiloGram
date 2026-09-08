@@ -56,36 +56,43 @@ export function RecordTab({
   const [shownTiming, setShownTiming] = useState<MealTiming>(currentTiming);
 
   return (
-    <div className="flex flex-col gap-8">
-      <DateSelector selectedDate={selectedDate} onDateChange={onDateChange} />
+    <div className="flex flex-col gap-7">
+      {/* 食事記録に関わるUIは、広い画面では左右2列に畳んで1画面に収める（ADR #34） */}
+      <div className="grid gap-7 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-0">
+        <div className="flex min-w-0 flex-col gap-5 md:pr-8">
+          <DateSelector selectedDate={selectedDate} onDateChange={onDateChange} />
 
-      <RecordHero
-        timingLabel={MEAL_TIMING_LABELS[shownTiming]}
-        mealCount={meals.filter((m) => m.meal_timing === shownTiming).length}
-      />
+          <RecordHero
+            timingLabel={MEAL_TIMING_LABELS[shownTiming]}
+            mealCount={meals.filter((m) => m.meal_timing === shownTiming).length}
+          />
 
-      <PFCSummary
-        calories={dailySummary?.calories ?? null}
-        protein={dailySummary?.protein ?? null}
-        fat={dailySummary?.fat ?? null}
-        carbs={dailySummary?.carbohydrates ?? null}
-        goals={goals}
-      />
+          <PFCSummary
+            calories={dailySummary?.calories ?? null}
+            protein={dailySummary?.protein ?? null}
+            fat={dailySummary?.fat ?? null}
+            carbs={dailySummary?.carbohydrates ?? null}
+            goals={goals}
+          />
 
-      <MealTimingTabs
-        meals={meals}
-        onEdit={onMealEdit}
-        onDelete={onMealDelete}
-        onSaveAsMenu={onMealSaveAsMenu}
-        frequentMeals={frequentMeals}
-        onRepeatMeal={onMealRepeat}
-        isRepeatingMeal={isRepeatingMeal}
-        onTimingChange={setShownTiming}
-      />
+          <MealTimingTabs
+            meals={meals}
+            onEdit={onMealEdit}
+            onDelete={onMealDelete}
+            onSaveAsMenu={onMealSaveAsMenu}
+            frequentMeals={frequentMeals}
+            onRepeatMeal={onMealRepeat}
+            isRepeatingMeal={isRepeatingMeal}
+            onTimingChange={setShownTiming}
+          />
 
-      <Section>{mealFormSlot}</Section>
+          <Section>{weightFormSlot}</Section>
+        </div>
 
-      <Section>{weightFormSlot}</Section>
+        <div className="min-w-0 border-t border-border/40 pt-7 md:border-t-0 md:border-l md:pt-0 md:pl-8">
+          {mealFormSlot}
+        </div>
+      </div>
     </div>
   );
 }

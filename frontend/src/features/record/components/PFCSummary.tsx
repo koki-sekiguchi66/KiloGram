@@ -9,8 +9,8 @@
 import { cn } from "@/lib/utils";
 import type { NutritionGoals } from "@/types";
 
-/** リングの寸法。viewBox と半径を揃えるため定数で持つ */
-const RING_SIZE = 148;
+/** リングの viewBox 座標系。実寸は CSS 側で決め、SVG は viewBox で追従させる */
+const RING_SIZE = 128;
 const RING_STROKE = 8;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
@@ -34,7 +34,7 @@ function CalorieRing({ calories, goal }: { calories: number | null; goal?: numbe
   const remaining = calories != null && goal ? Math.max(0, goal - calories) : null;
 
   return (
-    <div className="relative shrink-0" style={{ width: RING_SIZE, height: RING_SIZE }}>
+    <div className="relative aspect-square w-28 shrink-0 lg:w-32">
       <svg
         viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
         className="h-full w-full -rotate-90"
@@ -68,7 +68,7 @@ function CalorieRing({ calories, goal }: { calories: number | null; goal?: numbe
         {remaining != null && (
           <span className="text-[11px] text-muted-foreground">あと</span>
         )}
-        <span className="font-display mt-0.5 text-3xl leading-none tabular-nums text-foreground">
+        <span className="font-display mt-0.5 text-2xl leading-none tabular-nums text-foreground lg:text-3xl">
           {(remaining ?? calories) != null
             ? Math.round(remaining ?? calories ?? 0).toLocaleString()
             : "--"}
@@ -98,7 +98,7 @@ function NutrientColumn({
 
   return (
     <div>
-      <div className={cn("text-xs", colorClass)}>{label}</div>
+      <div className={cn("truncate text-[11px]", colorClass)}>{label}</div>
       <div className="mt-1.5 flex items-baseline gap-1">
         <span className="text-2xl font-semibold tabular-nums text-foreground">
           {value != null ? Math.round(value) : "--"}
@@ -133,7 +133,7 @@ export function PFCSummary({
 }: PFCSummaryProps) {
   return (
     <div
-      className="flex items-center gap-7"
+      className="flex items-center gap-5"
       role="region"
       aria-label="栄養サマリー"
     >

@@ -67,7 +67,7 @@ export function AppShell({
         onNavigate={setActivePage}
         onLogout={onLogout}
       />
-      <main className="mx-auto max-w-xl px-5 pt-6 pb-12">{renderContent()}</main>
+      <main className="mx-auto max-w-5xl px-5 pt-6 pb-12">{renderContent()}</main>
       <footer className="mx-auto flex max-w-xl items-end justify-between border-t border-border/40 px-5 pt-6 pb-10 text-muted-foreground">
         <p className="text-xs tracking-widest">食で、いい自分をつくる。</p>
         <p className="font-display text-sm opacity-60">DishBoard</p>

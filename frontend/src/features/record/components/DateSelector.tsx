@@ -32,45 +32,51 @@ export function DateSelector({ selectedDate, onDateChange }: DateSelectorProps) 
   const { date, dayOfWeek } = formatDateJa(selectedDate);
 
   return (
-    <div className="flex items-center gap-2">
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => onDateChange(shiftDate(selectedDate, -1))}
-        aria-label="前日"
-        className="-ml-2 text-muted-foreground hover:bg-transparent hover:text-foreground"
-      >
-        <ChevronLeft className="h-6 w-6" />
-      </Button>
-
-      <p className="font-display flex items-baseline gap-3 leading-none text-foreground">
-        <span className="text-4xl">{date}</span>
-        <span className="text-lg text-muted-foreground">{dayOfWeek}</span>
+    <div>
+      <p className="text-[11px] tracking-[0.25em] text-muted-foreground">
+        日付を選択
       </p>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => onDateChange(shiftDate(selectedDate, 1))}
-        disabled={isToday}
-        aria-label="翌日"
-        className="text-muted-foreground hover:bg-transparent hover:text-foreground"
-      >
-        <ChevronRight className="h-6 w-6" />
-      </Button>
-
-      {/* 今日を見ているときは何も出さない。戻る手段が要るときだけ出す */}
-      {!isToday && (
-        <button
-          onClick={() => onDateChange(today)}
-          className={cn(
-            "ml-auto text-xs tracking-widest text-primary",
-            "transition-opacity hover:opacity-70"
-          )}
+      <div className="mt-1.5 flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onDateChange(shiftDate(selectedDate, -1))}
+          aria-label="前日"
+          className="-ml-2 text-muted-foreground hover:bg-transparent hover:text-foreground"
         >
-          今日へ
-        </button>
-      )}
+          <ChevronLeft className="h-6 w-6" />
+        </Button>
+
+        <p className="font-display flex items-baseline gap-3 leading-none text-foreground">
+          <span className="text-4xl">{date}</span>
+          <span className="text-lg text-muted-foreground">{dayOfWeek}</span>
+        </p>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onDateChange(shiftDate(selectedDate, 1))}
+          disabled={isToday}
+          aria-label="翌日"
+          className="text-muted-foreground hover:bg-transparent hover:text-foreground"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </Button>
+
+        {/* 今日を見ているときは何も出さない。戻る手段が要るときだけ出す */}
+        {!isToday && (
+          <button
+            onClick={() => onDateChange(today)}
+            className={cn(
+              "ml-auto text-xs tracking-widest text-primary",
+              "transition-opacity hover:opacity-70"
+            )}
+          >
+            今日へ
+          </button>
+        )}
+      </div>
     </div>
   );
 }

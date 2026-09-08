@@ -193,8 +193,13 @@ export default function MenuBuilderPanel({
             )}
           >
             <Icon className="h-4 w-4" />
-            <span className="text-[11px] font-medium">{label}</span>
-            <span className="text-[9px] leading-tight opacity-70">{note}</span>
+            <span className="text-[10px] font-medium whitespace-nowrap lg:text-[11px]">
+              {label}
+            </span>
+            {/* 列が狭いと2行に折り返して行の高さが揃わないため、広い画面だけ出す */}
+            <span className="hidden text-[9px] leading-tight opacity-70 xl:block">
+              {note}
+            </span>
           </button>
         ))}
       </div>

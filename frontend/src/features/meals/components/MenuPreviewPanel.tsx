@@ -66,9 +66,9 @@ export default function MenuPreviewPanel({ menuBuilder }: MenuPreviewPanelProps)
       </div>
 
       {isEmpty ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-border/50 px-4 py-12 text-center">
-          <BowlIcon className="h-9 w-9 text-muted-foreground/60" />
-          <p className="mt-1 text-sm text-foreground">まだ何も追加されていません</p>
+        <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-dashed border-border/50 px-4 py-7 text-center">
+          <BowlIcon className="h-7 w-7 text-muted-foreground/60" />
+          <p className="text-sm text-foreground">まだ何も追加されていません</p>
           <p className="text-xs text-muted-foreground">
             検索・撮影・メニューから追加できます
           </p>
@@ -80,7 +80,7 @@ export default function MenuPreviewPanel({ menuBuilder }: MenuPreviewPanelProps)
       )}
 
       {/* 合計 + 登録 */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-full border border-border/40 py-2 pr-2 pl-5">
+      <div className="flex flex-col gap-3 rounded-2xl border border-border/40 p-3 xl:flex-row xl:items-center xl:justify-between xl:rounded-full xl:py-2 xl:pr-2 xl:pl-5">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <p className="flex items-baseline gap-1.5">
             <span className="text-xs text-muted-foreground">合計</span>
@@ -103,7 +103,7 @@ export default function MenuPreviewPanel({ menuBuilder }: MenuPreviewPanelProps)
         <Button
           variant="brand"
           size="xl"
-          className="ml-auto font-semibold"
+          className="w-full font-semibold xl:ml-auto xl:w-auto"
           onClick={handleSubmit}
           disabled={isEmpty || isSubmitting}
         >

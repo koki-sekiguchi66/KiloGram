@@ -30,7 +30,7 @@ export function Section({
   children,
 }: SectionProps) {
   return (
-    <section className={cn(!bare && "border-t border-border/40 pt-7", className)}>
+    <section className={cn(!bare && "border-t border-border/40 pt-6", className)}>
       {title && (
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h2 className="font-display text-xl">{title}</h2>
