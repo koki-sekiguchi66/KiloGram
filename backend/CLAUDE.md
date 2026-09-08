@@ -13,7 +13,7 @@ record_app/
   business_logic/      HTTP を知らない純粋なドメイン処理
     nutrition_calculator.py   食品検索・栄養計算・日次サマリー
     ocr_processor.py          栄養成分表示ラベルの OCR（Azure AI Vision）
-    cafeteria_scraping.py     学食サイトのスクレイピング
+    cafeteria_scraping.py     学食サイトのスクレイピング（3食堂。ADR #31）
     cafeteria_advisor.py      残りの目標に合う学食メニューの提案（ADR #30）
   management/commands/ 外部スケジューラから叩く入口
 ```
