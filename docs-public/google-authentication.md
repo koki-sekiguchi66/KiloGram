@@ -131,6 +131,20 @@ OAuth 認可フロー → Django ログイン画面 → Google credential を PO
 Google Cloud Console の「承認済み JavaScript 生成元」には**両方のオリジン**を登録する
 （パス・末尾スラッシュ無し）。
 
+### ログイン画面の COOP（→ ADR #32）
+
+Google のログインはポップアップで認証し、結果を元の画面へ渡す。
+Django の `SecurityMiddleware` が既定で付ける `Cross-Origin-Opener-Policy: same-origin` は
+この受け渡しを遮断するため、**ログイン画面のレスポンスだけ** `same-origin-allow-popups` にしている。
+
+設定は `DishBoardLoginView.render_to_response()` にあり、`settings` は既定のまま触っていない。
+`SecurityMiddleware` は `setdefault()` で値を入れるので、View 側の指定が優先される。
+
+| 経路 | COOP |
+|---|---|
+| `GET`/`POST /accounts/login/` | `same-origin-allow-popups` |
+| それ以外（`/o/authorize/` `/api/` `/admin/` …） | `same-origin` |
+
 ---
 
 ## 7. セキュリティ上の設計判断
@@ -188,6 +202,10 @@ Google へは実際に通信せず、`requests.get` をモックして tokeninfo
 audience 不一致 / issuer 不一致 / 未確認メール / 別ユーザー連携済み subject の拒否 /
 別アカウントによる上書き拒否 / 連携解除 / Google 専用ユーザーの解除拒否 /
 セッションログイン / 不正な `next` の拒否
+
+COOP はヘッダを付けるのが View、既定値を入れるのが middleware なので、
+**middleware を通る Django のテストクライアント**で最終レスポンスを検証する
+（ログイン画面 / ログイン失敗時の再表示 / それ以外の画面の3件）。
 
 ---
 
@@ -259,5 +277,6 @@ Google ログイン実装時のコードリーディングで見つかり、同�
 - credential・token・健康情報をログへ出さない
 - backend と frontend の client ID を一致させる
 - **OAuth の issuer と MCP の resource を混同しない**
+- **COOP の緩和をログイン画面の外へ広げない**（→ ADR #32）
 - `VITE_` 変数を変えたら frontend を再ビルドする
 - マイグレーション前にバックアップを取る

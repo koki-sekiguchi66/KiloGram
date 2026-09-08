@@ -1248,6 +1248,57 @@ MCP 層にドメインロジックを書かない方針（#23）にも従う。
 
 ---
 
+## #32. COOP の緩和を、OAuth 認可用ログイン画面だけに限定する
+
+**決定**
+Google Identity Services のポップアップから認証結果を受け取れるように、
+`Cross-Origin-Opener-Policy` を `same-origin-allow-popups` にする。
+ただし設定するのは `DishBoardLoginView` の `render_to_response()` の中だけで、
+`settings` の `SECURE_CROSS_ORIGIN_OPENER_POLICY` は既定（`same-origin`）のまま触らない。
+
+**背景**
+MCP 認可フローで、Google アカウントを選んだあと画面が進まなくなっていた。
+`POST /accounts/google/` 自体が発生しておらず、ポップアップ側で発行された
+credential がログイン画面のコールバックまで届いていない。
+
+Django の `SecurityMiddleware` は既定で全レスポンスに `Cross-Origin-Opener-Policy: same-origin`
+を付ける。この値は開いたポップアップとの `window.opener` 関係を切るため、
+ポップアップから元の画面へ結果を渡す作りの Google ログインが成立しない。
+ユーザー名・パスワードでのログインが成功し、Google 側の生成元エラーも出ていないのに
+callback だけが呼ばれない、という症状はこれで説明がつく。
+
+**検討した代替案**
+
+1. `settings` の `SECURE_CROSS_ORIGIN_OPENER_POLICY` を全体で緩める
+2. nginx の該当 location に `add_header` で付ける
+3. ログイン画面の View のレスポンスにだけ付ける（採用）
+
+**選んだ理由**
+案1 は1行で済むが、緩和が全レスポンスに及ぶ。認可用サブドメイン（#26）には
+OAuth 同意画面（`/o/authorize/`）と admin も同居しており、ポップアップを開くのは
+ログイン画面だけである。必要のない画面まで opener 関係を残す理由がない。
+
+案2 は本番構成（`nginx/conf.d/`）にアプリ側の都合を持ち込む。
+開発環境は nginx を通さないため挙動が食い違い、**テストで固定できない**のが決定的だった。
+
+案3 は緩和が1クラスに閉じ、`SecurityMiddleware` が `setdefault()` で値を入れる仕様なので
+View 側の指定が優先される。middleware を通る Django のテストクライアントで
+「ログイン画面は緩和され、他は既定のまま」を回帰テストとして固定できる。
+
+**トレードオフ**
+
+- 得たもの: ポップアップからの credential 受け取りが成立する。
+  緩和の影響範囲が1画面に閉じ、テストで境界を明示できる
+- 失ったもの: 緩和が `settings` ではなく View にあるため、設定ファイルを横断して見ても気づけない。
+  この画面に将来何かを足すときは、緩和されている前提を意識する必要がある
+- 受容の根拠: この画面が持つのはログインフォームだけで、
+  他オリジンから開かれても読み取れる情報がない。緩和の代償が小さい
+
+`same-origin-allow-popups` は「自分が開いたポップアップとの関係は保つが、
+自分を開いた側との関係は切る」という値であり、`unsafe-none`（無効化）とは別物である。
+
+---
+
 ## 今後の課題
 
 コード上で認識している、未解決の項目。
