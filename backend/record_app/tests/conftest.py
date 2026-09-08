@@ -265,7 +265,8 @@ def weight_records(user):
 def cafeteria_menus(db):
     """テスト用食堂メニュー
 
-    menu_id は unique 制約があるため、必ず個別の値を与えること
+    (cafeteria, menu_id) に unique 制約があるため、同じ食堂の中では
+    menu_id に必ず個別の値を与えること
     （省略すると空文字が重複して2件目の作成が落ちる）。
     """
     menus = []
