@@ -202,6 +202,16 @@
   letter-spacing: 0.06em;
 }
 
+/* ── 縦書きのアクセント文（ADR #34） ──
+ * 全体を縦組みにすると操作性が落ちるため、ヒーローの一言だけに使う。
+ * text-orientation は既定の mixed のまま（和文は正立、英数字は横倒し）。
+ */
+.text-vertical {
+  writing-mode: vertical-rl;
+  letter-spacing: 0.22em;
+  line-height: 1.9;
+}
+
 /* ── 主要アクションの発光（ADR #33） ──
  * 暗い画面で「押す場所」を1つに絞るための、primary のみに許す表現。
  */

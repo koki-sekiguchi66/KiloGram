@@ -6,7 +6,7 @@
 src/
   features/<name>/     機能単位。api/ components/ hooks/ types.ts index.ts
   components/ui/       shadcn/ui のプリミティブ。ここに独自コンポーネントを増やさない
-  components/layout/   AppShell / Header / Sidebar
+  components/layout/   AppShell / Header / Sidebar / Section
   components/inputs/   feature をまたぐ独自入力部品（MeasureField / QuickAmountChips）
   types/               feature をまたぐ共通型（index.ts で再エクスポート）
   lib/                 apiClient（axios）と汎用ユーティリティ
@@ -45,6 +45,9 @@ import X from '@/features/customFoods/components/EditCustomFoodModal'; // ❌
   `CardTitle` / `DialogTitle` は既に明朝なので、個別に指定しない → ADR #33
 - **画面で最も重要な1アクションだけ `<Button variant="brand" size="xl">`。**
   1画面に複数置くと発光が意味を失う → ADR #33
+- **`Card` で囲わない。** セクションは `@/components/layout` の `Section`（見出し + 上端の罫線）
+  で区切る。面を持たせてよいのは記録ページのヒーロー（黒板）だけ → ADR #34
+- 罫線は `border-border/40`、囲みが要る場所でも `/40`〜`/70` に留める → ADR #34
 - トーストは `sonner`、グラフは `recharts`
 - **数値欄は `MeasureField`**（`@/components/inputs`）。`<input type="number">` を直接置かない。
   値は文字列で渡す（空欄と 0 を区別するため）。→ ADR #18

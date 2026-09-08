@@ -7,6 +7,9 @@
  * 設計判断:
  *   React Router は導入せず、useState によるページ切り替えで SPA 感を実現。
  *   理由: DishBoard は記録特化アプリであり、ブラウザ履歴やURL永続化は不要。
+ *
+ *   記録ページだけは中からページ遷移したい（「今日の食事を振り返る」→ 分析）ため、
+ *   ReactNode ではなく navigate を受け取る関数で渡す。Context を足さずに済む（ADR #34）。
  */
 import { useState, type ReactNode } from "react";
 import { Header } from "./Header";
@@ -15,8 +18,8 @@ import { Sidebar, type PageId } from "./Sidebar";
 interface AppShellProps {
   /** ログアウトハンドラー（App.tsx から渡される） */
   onLogout: () => void;
-  /** 記録ページのコンテンツ */
-  recordContent: ReactNode;
+  /** 記録ページのコンテンツ。ページ遷移関数を受け取る */
+  renderRecordContent: (navigate: (page: PageId) => void) => ReactNode;
   /** 分析ページのコンテンツ */
   analysisContent?: ReactNode;
   /** 設定ページのコンテンツ */
@@ -27,7 +30,7 @@ interface AppShellProps {
 function PagePlaceholder({ title }: { title: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-      <p className="text-lg font-medium">{title}</p>
+      <p className="font-display text-lg">{title}</p>
       <p className="mt-1 text-sm">Coming Soon...</p>
     </div>
   );
@@ -35,7 +38,7 @@ function PagePlaceholder({ title }: { title: string }) {
 
 export function AppShell({
   onLogout,
-  recordContent,
+  renderRecordContent,
   analysisContent,
   settingsContent,
 }: AppShellProps) {
@@ -45,14 +48,12 @@ export function AppShell({
   /** ページIDに対応するコンテンツを返す */
   const renderContent = (): ReactNode => {
     switch (activePage) {
-      case "record":
-        return recordContent;
       case "analysis":
         return analysisContent ?? <PagePlaceholder title="分析" />;
       case "settings":
         return settingsContent ?? <PagePlaceholder title="設定" />;
       default:
-        return recordContent;
+        return renderRecordContent(setActivePage);
     }
   };
 
@@ -66,11 +67,9 @@ export function AppShell({
         onNavigate={setActivePage}
         onLogout={onLogout}
       />
-      <main className="mx-auto max-w-lg px-4 pt-6 pb-10">
-        {renderContent()}
-      </main>
-      <footer className="mx-auto flex max-w-lg items-end justify-between px-4 pb-8 text-muted-foreground">
-        <p className="text-xs">食で、いい自分をつくる。</p>
+      <main className="mx-auto max-w-xl px-5 pt-6 pb-12">{renderContent()}</main>
+      <footer className="mx-auto flex max-w-xl items-end justify-between border-t border-border/40 px-5 pt-6 pb-10 text-muted-foreground">
+        <p className="text-xs tracking-widest">食で、いい自分をつくる。</p>
         <p className="font-display text-sm opacity-60">DishBoard</p>
       </footer>
     </div>
