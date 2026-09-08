@@ -249,6 +249,20 @@ GitHub Actions（cron）→ SSH → python manage.py update_cafeteria_menus
    → 失敗時は非ゼロ終了し、GitHub Actions 側で失敗として検知される
 ```
 
+### 6-4. 残りの目標に合う学食メニューを提案する
+
+```
+GET /api/cafeteria/suggestions/ または MCP ツール suggest_cafeteria_menus
+   → NutritionGoal（未設定ならモデルの既定値）とその日の摂取実績から「残り」を出す
+   → 各学食メニューを、残りとの差を目標比に正規化して採点
+      （超過は不足より重く見る）
+   → 残りに近い順に最大5件を返す
+```
+
+学食の栄養値を週次で持っていること（6-3）と、目標値がサーバーにあること
+（[decisions.md #28](docs-public/decisions.md)）の両方が揃って成立する機能である
+（→ [decisions.md #30](docs-public/decisions.md)）。
+
 ---
 
 ## 7. フロントエンドの設計
@@ -261,8 +275,10 @@ GitHub Actions（cron）→ SSH → python manage.py update_cafeteria_menus
   URL の永続化やブラウザ履歴が要件になっていない（→ [decisions.md #12](docs-public/decisions.md)）
 - **サーバーデータ**: 各 feature のカスタムフック（`useDashboardData` など）が
   取得・保持・更新を担う
-- **設定値**: `useGoalSettings` / `useTheme` が `localStorage` に永続化する。
-  Context は使わず props で伝搬している（→ [decisions.md #13](docs-public/decisions.md)）
+- **設定値**: 栄養目標値はサーバーに保存し、`localStorage` はオフライン用の
+  キャッシュとして併用する（→ [decisions.md #28](docs-public/decisions.md)）。
+  テーマは `localStorage` のみ。どちらも Context は使わず props で伝搬している
+  （→ [decisions.md #13](docs-public/decisions.md)）
 
 ### ロジックの置き場所
 

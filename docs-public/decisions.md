@@ -411,6 +411,10 @@ import X from '@/features/customFoods/components/EditCustomFoodModal'; // ❌ �
 
 ## #13. 設定値を Context ではなく props 伝搬 + localStorage で扱う
 
+> 一部変更: **栄養目標値の保存先はサーバーへ移した**（#28）。
+> `localStorage` はオフライン用キャッシュとして残る。
+> **props 伝搬にする判断（Context を使わない）は現在も有効。**
+
 **決定**
 栄養目標値（`useGoalSettings`）とテーマ（`useTheme`）は `localStorage` に保存し、
 React Context を使わず props で伝搬する。
