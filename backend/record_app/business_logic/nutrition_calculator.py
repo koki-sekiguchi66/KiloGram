@@ -261,7 +261,8 @@ class NutritionCalculatorService:
                 'item_type': 'cafeteria',
                 'item_id': menu.id,
                 'name': menu.name,
-                'category': menu.get_category_display(),
+                # 同じ料理を複数の食堂が出すため、どの食堂かまで示さないと選べない
+                'category': f'{menu.get_cafeteria_display()} / {menu.category_label or menu.get_category_display()}',
                 'nutrition_basis': 'per_serving',
                 'nutrition': self._get_nutrition_of_serving(menu),
             }

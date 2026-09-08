@@ -71,6 +71,26 @@ class TestCafeteriaAdvisor:
 
         assert result['suggestions'] == []
 
+    def test_候補にどの食堂かが付く(self, user, menus):
+        """menu_id は食堂をまたぐと重複するため、食堂まで示さないと特定できない。"""
+        result = CafeteriaAdvisor().suggest(user, date.today(), limit=1)
+        top = result['suggestions'][0]
+
+        assert top['cafeteria'] == 'rune'
+        assert top['cafeteria_display'] == 'ルネカフェテリア'
+
+    def test_食堂を指定するとその食堂だけから選ぶ(self, user, menus):
+        CafeteriaMenu.objects.create(
+            cafeteria='hokubu', menu_id='L1', name='北部のサラダ', category='main',
+            calories=100, protein=5, fat=3, carbohydrates=10,
+        )
+
+        result = CafeteriaAdvisor().suggest(
+            user, date.today(), limit=5, cafeteria='hokubu'
+        )
+
+        assert [s['name'] for s in result['suggestions']] == ['北部のサラダ']
+
     def test_各候補に不足と超過の内訳が付く(self, user, menus):
         NutritionGoal.objects.create(user=user, calories=2000, protein=100, fat=56, carbs=275)
 
@@ -109,6 +129,17 @@ class TestCafeteriaSuggestionAPI:
         response = authenticated_client.get('/api/cafeteria/suggestions/?date=not-a-date')
 
         assert response.status_code == 400
+
+    def test_食堂で絞り込める(self, authenticated_client, menus):
+        CafeteriaMenu.objects.create(
+            cafeteria='chuo', menu_id='C1', name='中央の定食', category='main',
+            calories=600, protein=25, fat=20, carbohydrates=70,
+        )
+
+        response = authenticated_client.get('/api/cafeteria/suggestions/?cafeteria=chuo')
+
+        assert response.status_code == 200
+        assert [s['name'] for s in response.data['suggestions']] == ['中央の定食']
 
 
 @pytest.mark.django_db

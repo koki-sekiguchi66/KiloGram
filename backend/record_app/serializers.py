@@ -55,7 +55,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class CafeteriaMenuSerializer(serializers.ModelSerializer):
     category_display = serializers.CharField(source='get_category_display', read_only=True)
-    
+    cafeteria_display = serializers.CharField(source='get_cafeteria_display', read_only=True)
+
     class Meta:
         model = CafeteriaMenu
         fields = '__all__'

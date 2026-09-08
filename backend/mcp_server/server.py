@@ -100,6 +100,8 @@ def _register_tools(server):
             '学食メニューを横断して探す。食事を記録する前に、必ずこれで '
             'item_type と item_id を調べること。\n'
             f'最大 {MAX_SEARCH_RESULTS} 件を返す。\n'
+            '学食メニューは3食堂ぶんあり、同じ料理が複数の食堂で見つかることがある。'
+            'どの食堂かは各件の category に入っているので、記録する前に確認すること。\n'
             '各件の nutrition_basis に注意すること: '
             '"per_100g" なら nutrition は100gあたりの値、'
             '"per_serving" なら1食ぶんの実数値である。\n'
@@ -160,6 +162,8 @@ def _register_tools(server):
             'そのメニューを食べた場合の残りで、**負なら超過**を意味する。\n'
             f'最大 {MAX_CAFETERIA_SUGGESTIONS} 件。並び順は「残りへの近さ」で、'
             '摂り過ぎを摂り足りないより重く見ている。\n'
+            '対象はルネカフェテリア(rune) / 北部食堂(hokubu) / 中央食堂(chuo) の3食堂。'
+            'cafeteria を指定するとその食堂だけに絞り、省略すると全食堂から選ぶ。\n'
             '学食メニューは週次で更新されるため、提示された日に実際に提供されるとは限らない。'
             f'{_DATE_FORMAT}\n{_UNITS}\n{_DATA_NOT_INSTRUCTIONS}'
         ),

@@ -526,7 +526,10 @@ def delete_custom_food(request, food_id):
 def list_cafeteria_menus(request):
     """食堂メニュー一覧を取得。"""
     category = request.GET.get('category')
+    cafeteria = request.GET.get('cafeteria')
     menus = CafeteriaMenu.objects.all()
+    if cafeteria:
+        menus = menus.filter(cafeteria=cafeteria)
     if category:
         menus = menus.filter(category=category)
     serializer = CafeteriaMenuSerializer(menus, many=True)
@@ -549,7 +552,9 @@ def suggest_cafeteria_menus(request):
     else:
         target_date = date.today()
 
-    result = CafeteriaAdvisor().suggest(request.user, target_date, limit=5)
+    result = CafeteriaAdvisor().suggest(
+        request.user, target_date, limit=5, cafeteria=request.GET.get('cafeteria')
+    )
     return Response(result)
 
 

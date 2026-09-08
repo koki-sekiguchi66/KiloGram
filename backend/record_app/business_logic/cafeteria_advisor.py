@@ -21,19 +21,24 @@ _OVERSHOOT_PENALTY = 1.5
 class CafeteriaAdvisor:
     """残りの目標に近い学食メニューを並べる。"""
 
-    def suggest(self, user, target_date, limit=5):
+    def suggest(self, user, target_date, limit=5, cafeteria=None):
         goal = self._get_goal(user)
         consumed = NutritionCalculatorService().get_daily_nutrition_summary(user, target_date)
         remaining = self._remaining(goal, consumed)
 
+        menus = CafeteriaMenu.objects.all()
+        if cafeteria:
+            menus = menus.filter(cafeteria=cafeteria)
+
         scored = [
             (self._score(menu, remaining, goal), menu)
-            for menu in CafeteriaMenu.objects.all()
+            for menu in menus
         ]
         scored.sort(key=lambda pair: pair[0])
 
         return {
             'date': str(target_date),
+            'cafeteria': cafeteria,
             'goal': goal,
             'consumed': {key: consumed[self._consumed_key(key)] for key in _SCORED_NUTRIENTS},
             'remaining': remaining,
@@ -90,7 +95,10 @@ class CafeteriaAdvisor:
         return {
             'menu_id': menu.menu_id,
             'name': menu.name,
+            'cafeteria': menu.cafeteria,
+            'cafeteria_display': menu.get_cafeteria_display(),
             'category': menu.category,
+            'category_label': menu.category_label,
             'nutrition': nutrition,
             'remaining_after': {
                 key: round(remaining[key] - nutrition[key], 1)

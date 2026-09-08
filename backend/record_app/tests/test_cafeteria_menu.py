@@ -243,6 +243,59 @@ class CafeteriaMenuReadOnlyTests(APITestCase):
         )
 
 
+class CafeteriaMenuSiteFilterTests(APITestCase):
+    """食堂による絞り込みのテスト"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='testuser', password='testpass123'
+        )
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f'Token {self.token.key}'
+        )
+
+        # menu_id は食堂をまたぐと重複する。同じIDで別食堂の行を作れることも兼ねて確認する
+        for cafeteria, name in [
+            ('rune', 'ルネのカレー'),
+            ('hokubu', '北部のカレー'),
+            ('chuo', '中央のカレー'),
+        ]:
+            CafeteriaMenu.objects.create(
+                cafeteria=cafeteria, menu_id='610001', name=name, category='rice',
+                category_label='丼・カレー',
+                calories=700, protein=25, fat=20, carbohydrates=100,
+            )
+
+    def test_食堂で絞り込める(self):
+        response = self.client.get('/api/cafeteria/list/?cafeteria=hokubu')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['name'], '北部のカレー')
+
+    def test_食堂とカテゴリーを併用できる(self):
+        response = self.client.get('/api/cafeteria/list/?cafeteria=rune&category=main')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 0)
+
+    def test_食堂を指定しなければ全食堂が返る(self):
+        response = self.client.get('/api/cafeteria/list/')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+
+    def test_食堂名と区分見出しが含まれる(self):
+        response = self.client.get('/api/cafeteria/list/?cafeteria=chuo')
+
+        menu = response.data[0]
+        self.assertEqual(menu['cafeteria'], 'chuo')
+        self.assertEqual(menu['cafeteria_display'], '中央食堂')
+        self.assertEqual(menu['category_label'], '丼・カレー')
+
+
 class CafeteriaMenuCategoryFilterTests(APITestCase):
     """カテゴリーフィルタリングの詳細テスト"""
     
