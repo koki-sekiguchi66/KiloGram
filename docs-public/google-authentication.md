@@ -140,6 +140,9 @@ Django の `SecurityMiddleware` が既定で付ける `Cross-Origin-Opener-Polic
 設定は `DishBoardLoginView.render_to_response()` にあり、`settings` は既定のまま触っていない。
 `SecurityMiddleware` は `setdefault()` で値を入れるので、View 側の指定が優先される。
 
+**この設定を外すと、Google のアカウント選択までは進むのに `POST /accounts/google/` が発生しなくなる。**
+ユーザー名・パスワードのログインは成功したままなので、Google 連携の設定ミスに見えるが別物である。
+
 | 経路 | COOP |
 |---|---|
 | `GET`/`POST /accounts/login/` | `same-origin-allow-popups` |
