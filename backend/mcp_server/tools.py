@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 
 from . import formatters, validators
 from .constants import (
+    MAX_CAFETERIA_SUGGESTIONS,
     MAX_LIST_RECORDS,
     MAX_SEARCH_RESULTS,
     NUTRIENT_ROUND_DIGITS,
@@ -369,3 +370,23 @@ def _build_meal_payload(user, record_date, meal_timing, meal_name, items):
         **totals,
         'items': item_payloads,
     }
+
+
+# =============================================================================
+# T9: 残りの目標に合う学食メニューの提案
+# =============================================================================
+
+async def suggest_cafeteria_menus(date: str) -> dict:
+    """残りの栄養目標に近い学食メニューを提案する。"""
+    user = await resolve_user(SCOPE_MEALS_READ)
+    target_date = validators.parse_date(date, 'date')
+
+    return await sync_to_async(_suggest_cafeteria_sync)(user, target_date)
+
+
+def _suggest_cafeteria_sync(user, target_date):
+    from record_app.business_logic.cafeteria_advisor import CafeteriaAdvisor
+
+    return CafeteriaAdvisor().suggest(
+        user, target_date, limit=MAX_CAFETERIA_SUGGESTIONS
+    )

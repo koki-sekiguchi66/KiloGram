@@ -15,7 +15,12 @@ from mcp.server.transport_security import TransportSecuritySettings
 
 from . import tools
 from .auth import DjangoAccessTokenVerifier
-from .constants import MAX_ITEMS_PER_MEAL, MAX_SEARCH_RESULTS, MAX_TREND_DAYS
+from .constants import (
+    MAX_CAFETERIA_SUGGESTIONS,
+    MAX_ITEMS_PER_MEAL,
+    MAX_SEARCH_RESULTS,
+    MAX_TREND_DAYS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +62,7 @@ def build_server(resource_url, issuer_url):
         instructions=(
             'DishBoard は食事と体重を記録して栄養管理を行うアプリである。'
             '食事記録の閲覧・栄養分析・記録の作成と編集ができる。'
+            '残りの目標に合う学食メニューの提案もできる。'
             '記録の削除はこのコネクタでは行えない。'
         ),
         token_verifier=DjangoAccessTokenVerifier(resource_url),
@@ -85,7 +91,7 @@ def build_server(resource_url, issuer_url):
 
 
 def _register_tools(server):
-    """T1〜T8 を登録する。"""
+    """T1〜T9 を登録する。"""
 
     server.add_tool(
         tools.search_foods,
@@ -141,6 +147,21 @@ def _register_tools(server):
             '栄養値は記録した時点のスナップショットであり、'
             '現在の食品データベースの値とは一致しないことがある（仕様）。\n'
             f'{_UNITS}\n{_DATA_NOT_INSTRUCTIONS}'
+        ),
+    )
+
+    server.add_tool(
+        tools.suggest_cafeteria_menus,
+        description=(
+            '指定した日の「目標の残り」に近い学食メニューを提案する。'
+            '**データベースには書き込まない**（提案するだけ）。\n'
+            '返り値の goal は目標値、consumed はその日の摂取済み、'
+            'remaining は残り（目標 − 摂取済み）。各候補の remaining_after は'
+            'そのメニューを食べた場合の残りで、**負なら超過**を意味する。\n'
+            f'最大 {MAX_CAFETERIA_SUGGESTIONS} 件。並び順は「残りへの近さ」で、'
+            '摂り過ぎを摂り足りないより重く見ている。\n'
+            '学食メニューは週次で更新されるため、提示された日に実際に提供されるとは限らない。'
+            f'{_DATE_FORMAT}\n{_UNITS}\n{_DATA_NOT_INSTRUCTIONS}'
         ),
     )
 

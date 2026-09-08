@@ -5,7 +5,7 @@ from .views import (
     CustomFoodViewSet, UserRegistrationView, UserProfileView, LogoutView,
     CustomMenuViewSet,
     search_foods, food_suggestions, calculate_nutrition,
-    daily_nutrition_summary, list_cafeteria_menus, health_check,
+    daily_nutrition_summary, list_cafeteria_menus, suggest_cafeteria_menus, health_check,
     process_nutrition_label, GoogleLoginView, GoogleLinkView,
     NutritionGoalView, ThrottledObtainAuthToken,
 )
@@ -32,6 +32,7 @@ urlpatterns = [
     path('foods/calculate/', calculate_nutrition, name='calculate-nutrition'),
     path('nutrition/daily-summary/', daily_nutrition_summary, name='daily-nutrition-summary'),
     path('cafeteria/list/', list_cafeteria_menus, name='list-cafeteria'),
+    path('cafeteria/suggestions/', suggest_cafeteria_menus, name='suggest-cafeteria'),
     path('ocr/nutrition-label/', process_nutrition_label, name='ocr-nutrition-label'),
     path('health/', health_check, name='health-check'),
 ]

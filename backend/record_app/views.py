@@ -26,6 +26,7 @@ from .serializers import (
     CustomMenuSerializer, CustomMenuListSerializer, NutritionGoalSerializer
 )
 from .business_logic.nutrition_calculator import NutritionCalculatorService
+from .business_logic.cafeteria_advisor import CafeteriaAdvisor
 from .services import MealService, WeightService, CustomFoodService
 from .google_auth import GoogleLinkRequired, InvalidGoogleToken, resolve_google_user, verify_google_id_token
 from django.core.exceptions import ImproperlyConfigured
@@ -530,6 +531,26 @@ def list_cafeteria_menus(request):
         menus = menus.filter(category=category)
     serializer = CafeteriaMenuSerializer(menus, many=True)
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def suggest_cafeteria_menus(request):
+    """残りの栄養目標に近い学食メニューを提案する。"""
+    date_param = request.GET.get('date')
+    if date_param:
+        try:
+            target_date = date.fromisoformat(date_param)
+        except ValueError:
+            return Response(
+                {'error': 'date は YYYY-MM-DD 形式で指定してください'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+    else:
+        target_date = date.today()
+
+    result = CafeteriaAdvisor().suggest(request.user, target_date, limit=5)
+    return Response(result)
 
 
 @csrf_exempt

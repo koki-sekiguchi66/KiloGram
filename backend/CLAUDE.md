@@ -14,6 +14,7 @@ record_app/
     nutrition_calculator.py   食品検索・栄養計算・日次サマリー
     ocr_processor.py          栄養成分表示ラベルの OCR（Azure AI Vision）
     cafeteria_scraping.py     学食サイトのスクレイピング
+    cafeteria_advisor.py      残りの目標に合う学食メニューの提案（ADR #30）
   management/commands/ 外部スケジューラから叩く入口
 ```
 
@@ -34,7 +35,7 @@ mcp_server/
   context.py       トークン → Django ユーザーの解決とスコープ検査
   validators.py    入力の検証
   formatters.py    モデル → ツール返り値の変換
-  tools.py         ツール本体（T1〜T8）
+  tools.py         ツール本体（T1〜T9）
   server.py        FastMCP の組み立てとツール登録
   asgi.py          uvicorn のエントリポイント
 ```
