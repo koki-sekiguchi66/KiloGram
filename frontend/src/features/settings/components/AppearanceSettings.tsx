@@ -1,8 +1,7 @@
 /**
  * AppearanceSettings — 表示設定コンポーネント
  */
-import { Palette } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/layout";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useTheme } from "../hooks/useTheme";
@@ -11,14 +10,8 @@ export function AppearanceSettings() {
   const { theme, toggle } = useTheme();
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Palette className="h-4 w-4" />
-          表示設定
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Section title="表示設定">
+      <div>
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <Label htmlFor="dark-mode-toggle" className="text-sm font-medium">
@@ -37,7 +30,7 @@ export function AppearanceSettings() {
             aria-label="ダークモード切替"
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }

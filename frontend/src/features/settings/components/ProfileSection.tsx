@@ -7,8 +7,8 @@
  * 3状態: loading → success | error
  */
 import { useCallback, useState } from "react";
-import { User, Loader2, RefreshCw, Unlink } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, RefreshCw, Unlink } from "lucide-react";
+import { Section } from "@/components/layout";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useProfile } from "../hooks/useProfile";
@@ -38,14 +38,8 @@ export function ProfileSection() {
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <User className="h-4 w-4" />
-          プロフィール
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Section bare title="プロフィール">
+      <div>
         {loading ? (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -94,7 +88,7 @@ export function ProfileSection() {
           )}
           </div>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }

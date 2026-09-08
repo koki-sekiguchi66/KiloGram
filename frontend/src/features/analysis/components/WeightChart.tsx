@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Scale, CalendarDays } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/layout";
 
 interface Weight {
   id: number;
@@ -77,31 +77,17 @@ export function WeightChart({ weights }: WeightChartProps) {
 
   if (!weights?.length) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Scale className="h-5 w-5 text-blue-400" />
-            体重推移
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            データがありません
-          </p>
-        </CardContent>
-      </Card>
+      <Section title="体重推移">
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          データがありません
+        </p>
+      </Section>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Scale className="h-5 w-5 text-blue-400" />
-          体重推移
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <Section title="体重推移">
+      <div className="space-y-4">
         <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
@@ -159,8 +145,8 @@ export function WeightChart({ weights }: WeightChartProps) {
             ))}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }
 

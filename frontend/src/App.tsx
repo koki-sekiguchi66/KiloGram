@@ -2,8 +2,6 @@ import { useState, useEffect } from "react";
 import { HeartPulse, UserPlus, LogIn } from "lucide-react";
 import { Login, Register } from "@/features/auth";
 import { Dashboard } from "@/features/dashboard";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -68,51 +66,45 @@ function App() {
           </p>
         </div>
 
-        <Card className="rounded-2xl">
-          <CardContent className="p-6">
-            {currentView === "login" ? (
-              <>
-                <Login onLoginSuccess={handleLoginSuccess} />
+        {currentView === "login" ? (
+          <>
+            <Login onLoginSuccess={handleLoginSuccess} />
 
-                <Separator className="my-6" />
+            <Separator className="my-8 bg-border/40" />
 
-                <div className="text-center">
-                  <p className="mb-3 text-sm text-muted-foreground">
-                    まだアカウントをお持ちでないですか？
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={switchToRegister}
-                    className="w-full"
-                  >
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    新規登録
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <Register onRegisterSuccess={handleRegisterSuccess} />
+            <div className="text-center">
+              <p className="mb-4 text-sm text-muted-foreground">
+                まだアカウントをお持ちでないですか？
+              </p>
+              <button
+                onClick={switchToRegister}
+                className="inline-flex items-center gap-2 text-sm text-foreground transition-opacity hover:opacity-70"
+              >
+                <UserPlus className="h-4 w-4" />
+                新規登録
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <Register onRegisterSuccess={handleRegisterSuccess} />
 
-                <Separator className="my-6" />
+            <Separator className="my-8 bg-border/40" />
 
-                <div className="text-center">
-                  <p className="mb-3 text-sm text-muted-foreground">
-                    すでにアカウントをお持ちですか？
-                  </p>
-                  <Button
-                    variant="outline"
-                    onClick={switchToLogin}
-                    className="w-full"
-                  >
-                    <LogIn className="mr-2 h-4 w-4" />
-                    ログイン
-                  </Button>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+            <div className="text-center">
+              <p className="mb-4 text-sm text-muted-foreground">
+                すでにアカウントをお持ちですか？
+              </p>
+              <button
+                onClick={switchToLogin}
+                className="inline-flex items-center gap-2 text-sm text-foreground transition-opacity hover:opacity-70"
+              >
+                <LogIn className="h-4 w-4" />
+                ログイン
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       <Toaster />

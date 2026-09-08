@@ -19,10 +19,11 @@ import { AppearanceSettings } from "./AppearanceSettings";
 
 export function SettingsPage() {
   return (
-    <div className="space-y-5 pb-8" data-testid="settings-page">
+    <div className="flex flex-col gap-8" data-testid="settings-page">
       <header>
-        <h2 className="font-display text-3xl">設定</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <span className="block h-px w-10 bg-primary" aria-hidden="true" />
+        <h2 className="font-display mt-5 text-4xl">設定</h2>
+        <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
           目標値と見た目を、自分の暮らしに合わせて整えます。
         </p>
       </header>

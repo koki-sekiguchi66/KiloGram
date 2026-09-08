@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Flame, CalendarDays } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/layout";
 
 interface Meal {
   id: number;
@@ -86,31 +86,17 @@ export function CalorieChart({ meals }: CalorieChartProps) {
 
   if (!meals?.length) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Flame className="h-5 w-5 text-primary" />
-            カロリー推移
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            データがありません
-          </p>
-        </CardContent>
-      </Card>
+      <Section title="カロリー推移">
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          データがありません
+        </p>
+      </Section>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Flame className="h-5 w-5 text-primary" />
-          カロリー推移
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <Section title="カロリー推移">
+      <div className="space-y-4">
         {/* グラフ */}
         <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
@@ -170,8 +156,8 @@ export function CalorieChart({ meals }: CalorieChartProps) {
             ))}
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }
 

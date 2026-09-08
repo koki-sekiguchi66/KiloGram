@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Target, RotateCcw, Flame, Beef, Droplets, Wheat } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { RotateCcw, Flame, Beef, Droplets, Wheat } from "lucide-react";
+import { Section } from "@/components/layout";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { useGoalSettings } from "../hooks/useGoalSettings";
@@ -141,29 +141,21 @@ export function GoalSettings() {
   const totalRatio = ratios.protein + ratios.fat + ratios.carbs;
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between text-base">
-          <span className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            目標設定
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleReset}
-            className="h-7 text-xs"
-          >
-            <RotateCcw className="mr-1 h-3 w-3" />
-            リセット
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent
-        className="space-y-6"
-        role="region"
-        aria-label="栄養目標設定"
-      >
+    <Section
+      title="目標設定"
+      action={
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleReset}
+          className="h-7 text-xs text-muted-foreground"
+        >
+          <RotateCcw className="mr-1 h-3 w-3" />
+          リセット
+        </Button>
+      }
+    >
+      <div className="space-y-6" role="region" aria-label="栄養目標設定">
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-1.5 font-medium text-calories">
@@ -234,7 +226,7 @@ export function GoalSettings() {
             onValueChange={(v) => handleRatioChange("carbs", v)}
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }

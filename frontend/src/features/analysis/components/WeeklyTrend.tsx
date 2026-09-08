@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/layout";
 import { cn } from "@/lib/utils";
 
 interface Meal {
@@ -114,16 +114,12 @@ export function WeeklyTrend({ meals }: WeeklyTrendProps) {
   ];
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">
-          週間サマリー
-          <span className="ml-2 text-xs font-normal text-muted-foreground">
-            直近7日間の日平均{thisWeek.days > 0 ? `（${thisWeek.days}日分）` : ""}
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Section
+      bare
+      title="週間サマリー"
+      note={`直近7日間の日平均${thisWeek.days > 0 ? `（${thisWeek.days}日分）` : ""}`}
+    >
+      <div>
         <div className="grid grid-cols-4 gap-2">
           {items.map((item) => (
             <div key={item.label} className="text-center">
@@ -136,7 +132,7 @@ export function WeeklyTrend({ meals }: WeeklyTrendProps) {
             </div>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }

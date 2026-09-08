@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { CalendarDays } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { Section } from "@/components/layout";
 import { getLocalDateString } from "@/lib/date";
 
 interface Meal {
@@ -85,19 +85,8 @@ export function HeatmapCalendar({ meals, weeks = 12 }: HeatmapCalendarProps) {
   const totalRecordDays = countMap.size;
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between text-base">
-          <span className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-primary" />
-            記録カレンダー
-          </span>
-          <span className="text-xs font-normal text-muted-foreground">
-            {totalRecordDays}日記録
-          </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <Section title="記録カレンダー" note={`${totalRecordDays}日記録`}>
+      <div>
         <div className="overflow-x-auto">
           <svg
             width={svgWidth}
@@ -158,7 +147,7 @@ export function HeatmapCalendar({ meals, weeks = 12 }: HeatmapCalendarProps) {
           ))}
           <span>多</span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </Section>
   );
 }
