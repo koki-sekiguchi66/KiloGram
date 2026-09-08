@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RiceBallIcon, ScaleGaugeIcon } from "@/components/icons";
+import { Card } from "@/components/ui/card";
+import { ScaleGaugeIcon } from "@/components/icons";
 
 import { MealForm, EditMealModal, mealApi, useQuickRepeat } from "@/features/meals";
 import { WeightForm } from "@/features/weights";
@@ -71,34 +71,25 @@ const Dashboard = ({ handleLogout }: DashboardProps) => {
   };
 
   const mealFormSlot = useMemo(
-    () => (
-      <Card>
-        <CardHeader className="bg-primary/10">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <RiceBallIcon className="h-4 w-4" />
-            食事記録
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <MealForm onMealCreated={actions.handleMealCreated} />
-        </CardContent>
-      </Card>
-    ),
+    () => <MealForm onMealCreated={actions.handleMealCreated} />,
     [actions.handleMealCreated]
   );
 
   const weightFormSlot = useMemo(
     () => (
-      <Card>
-        <CardHeader className="bg-blue-500/10">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ScaleGaugeIcon className="h-4 w-4" />
-            体重記録
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <WeightForm onWeightCreated={actions.handleWeightCreated} />
-        </CardContent>
+      <Card className="rounded-2xl p-5">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary text-foreground">
+            <ScaleGaugeIcon className="h-5 w-5" />
+          </span>
+          <div>
+            <h2 className="font-display text-xl">体重記録</h2>
+            <p className="text-xs text-muted-foreground">
+              今日の体重を記録して、からだの変化を見てみましょう。
+            </p>
+          </div>
+        </div>
+        <WeightForm onWeightCreated={actions.handleWeightCreated} />
       </Card>
     ),
     [actions.handleWeightCreated]

@@ -7,7 +7,6 @@ import {
   Calendar,
   ScanLine,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -106,86 +105,85 @@ export default function MenuBuilderPanel({ menuBuilder }: MenuBuilderPanelProps)
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">食事を記録</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-2xl">
+          {MEAL_TIMING_LABELS[mealTiming]}を記録
+        </h2>
+
         {/* 日付 & タイミング */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <Label className="flex items-center gap-1.5 text-xs">
-              <Calendar className="h-3.5 w-3.5" />
-              記録日
-            </Label>
-            <Input
-              type="date"
-              value={recordDate}
-              onChange={(e) => setRecordDate(e.target.value)}
-              className="h-8 text-sm"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">タイミング</Label>
-            <select
-              value={mealTiming}
-              onChange={(e) => setMealTiming(e.target.value as MealTiming)}
-              className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              {TIMING_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="flex items-center gap-1 rounded-full border border-border/70 bg-secondary/40 py-1 pr-1 pl-3">
+          <Label htmlFor="record-date" className="sr-only">
+            記録日
+          </Label>
+          <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <Input
+            id="record-date"
+            type="date"
+            value={recordDate}
+            onChange={(e) => setRecordDate(e.target.value)}
+            className="h-7 w-auto border-0 bg-transparent px-1.5 text-xs shadow-none focus-visible:ring-0"
+          />
+          <span className="h-4 w-px bg-border" aria-hidden="true" />
+          <Label htmlFor="meal-timing" className="sr-only">
+            タイミング
+          </Label>
+          <select
+            id="meal-timing"
+            value={mealTiming}
+            onChange={(e) => setMealTiming(e.target.value as MealTiming)}
+            className="h-7 rounded-full bg-transparent px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            {TIMING_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
         </div>
+      </div>
 
-        {/* 入力方式タブ */}
-        <div className="flex flex-wrap gap-1">
-          {INPUT_METHODS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setActiveInputMethod(id)}
-              className={cn(
-                "flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors",
-                activeInputMethod === id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground hover:bg-secondary/80"
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {label}
-            </button>
-          ))}
-        </div>
+      {/* 入力方式タブ */}
+      <div className="grid grid-cols-6 gap-2">
+        {INPUT_METHODS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveInputMethod(id)}
+            className={cn(
+              "flex flex-col items-center gap-1.5 rounded-xl border px-1 py-2.5 text-[10px] font-medium transition-colors",
+              activeInputMethod === id
+                ? "border-primary/60 bg-primary/12 text-primary"
+                : "border-border/70 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
+      </div>
 
-        {/* 区切り線 */}
-        <div className="h-px bg-border" />
-
-        {/* 入力エリア */}
-        <div>
-          {activeInputMethod === "search" && (
-            <FoodSearchInput onFoodSelected={handleFoodSelected} />
-          )}
-          {activeInputMethod === "myItems" && (
-            <MyItemsSelector onItemSelected={handleFoodSelected} />
-          )}
-          {activeInputMethod === "myMenus" && (
-            <MyMenusSelector menuBuilder={menuBuilder} />
-          )}
-          {activeInputMethod === "cafeteria" && (
-            <CafeteriaSelector onMenuSelected={handleFoodSelected} />
-          )}
-          {activeInputMethod === "ocr" && (
-            <OCRButton onNutritionDetected={handleFoodSelected} />
-          )}
-          {activeInputMethod === "manual" && (
-            <ManualInputForm onAdd={handleFoodSelected} />
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      {/* 入力エリア */}
+      <div>
+        {activeInputMethod === "search" && (
+          <FoodSearchInput onFoodSelected={handleFoodSelected} />
+        )}
+        {activeInputMethod === "myItems" && (
+          <MyItemsSelector onItemSelected={handleFoodSelected} />
+        )}
+        {activeInputMethod === "myMenus" && (
+          <MyMenusSelector menuBuilder={menuBuilder} />
+        )}
+        {activeInputMethod === "cafeteria" && (
+          <CafeteriaSelector onMenuSelected={handleFoodSelected} />
+        )}
+        {activeInputMethod === "ocr" && (
+          <OCRButton onNutritionDetected={handleFoodSelected} />
+        )}
+        {activeInputMethod === "manual" && (
+          <ManualInputForm onAdd={handleFoodSelected} />
+        )}
+      </div>
+    </div>
   );
 }

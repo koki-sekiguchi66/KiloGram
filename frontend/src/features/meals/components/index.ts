@@ -8,5 +8,4 @@ export { default as MenuBuilderPanel } from "./MenuBuilderPanel";
 export { default as MenuPreviewPanel } from "./MenuPreviewPanel";
 export { default as ManualInputForm } from "./ManualInputForm";
 export { default as CafeteriaSelector } from "./CafeteriaSelector";
-export { default as NutritionSummary } from "./NutritionSummary";
 export { default as CurrentMenuDisplay } from "./CurrentMenuDisplay";

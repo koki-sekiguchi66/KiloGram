@@ -106,13 +106,13 @@ export default function FoodSearchInput({ onFoodSelected }: FoodSearchInputProps
       {!selectedFood && (
         <div className="space-y-2">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="食品名を入力... (例: 白米)"
-              className="pl-10"
+              placeholder="食品名を入力…（例：おにぎり、味噌汁、サラダ）"
+              className="h-13 rounded-2xl border-border/70 bg-secondary/30 pl-11 text-sm shadow-none"
               autoComplete="off"
             />
           </div>
@@ -127,7 +127,7 @@ export default function FoodSearchInput({ onFoodSelected }: FoodSearchInputProps
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           {results.length > 0 && (
-            <div className="max-h-[300px] overflow-y-auto rounded-lg border border-border">
+            <div className="max-h-[300px] overflow-y-auto rounded-2xl border border-border/70">
               {results.map((food) => (
                 <button
                   key={food.id}
