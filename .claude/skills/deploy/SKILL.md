@@ -25,10 +25,12 @@ git log origin/main..HEAD --oneline    # 手元で実行。何も出なければ
 cd ~/dishboard
 git pull
 docker compose -f docker-compose.production.yml build
-docker compose -f docker-compose.production.yml up -d
 
 # マイグレーションがある場合のみ（★事前に必ずバックアップ → §E）
+# ★ コンテナ入れ替えより先に走らせる（下記）
 docker compose -f docker-compose.production.yml run --rm backend python manage.py migrate
+
+docker compose -f docker-compose.production.yml up -d
 
 # ★ backend / mcp を作り直したら nginx も restart する
 docker compose -f docker-compose.production.yml restart nginx
@@ -37,11 +39,21 @@ docker compose -f docker-compose.production.yml ps   # db(healthy)/backend/mcp/n
 docker compose -f docker-compose.production.yml logs --tail=100 backend mcp
 ```
 
-### 必ず引っかかる4点
+**`migrate` は `up -d` より前に置く。** 列を足すマイグレーションでは順序で結果が変わる。
+
+- 先に `up -d` すると、新コードが**まだ列の無い DB** を読みにいき、
+  そのモデルを触る画面と API が `migrate` が終わるまで 500 になる
+- 先に `migrate` しても、走っている旧コードは自分のモデルが知る列しか SELECT しないので、
+  列が増えた DB 上で動き続ける。**停止時間が生まれない**
+
+`run --rm` は `build` 済みの新しいイメージを使うので、新しいマイグレーションが適用される。
+
+### 必ず引っかかる5点
 
 | 落とし穴 | 対処 |
 |---|---|
 | nginx の restart 忘れ → **502** | `upstream` の名前解決は起動時の一度きり。backend/mcp を作り直すと古い IP に繋ぎ続ける |
+| `migrate` を `up -d` の後にする | 列を足すマイグレーションだと、その間だけ新コードが古いスキーマを読んで 500 になる |
 | `VITE_` 変数を変えたのに反映されない | Vite は**ビルド時に埋め込む**。`build nginx` → `up -d nginx` が必要 |
 | `\` の後ろの空白で改行継続が切れる | `docker buildx build requires 1 argument` 等になる。**本番コマンドは1行で書く** |
 
