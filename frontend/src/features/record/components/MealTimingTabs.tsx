@@ -49,14 +49,10 @@ export function MealTimingTabs({
 
   return (
     <div>
-      <p className="text-[11px] tracking-[0.25em] text-muted-foreground">
-        食事タイミングを選択
-      </p>
-
       <Tabs
         value={activeTiming}
         onValueChange={(value) => setActiveTiming(value as MealTiming)}
-        className="mt-1.5 w-full"
+        className="w-full"
       >
         <TabsList className="grid h-auto w-full grid-cols-4 gap-0 divide-x divide-border/40 rounded-2xl border border-border/40 bg-transparent p-1.5">
           {TIMINGS.map((timing) => {
@@ -67,7 +63,7 @@ export function MealTimingTabs({
                 key={timing.value}
                 value={timing.value}
                 className={cn(
-                  "flex items-center justify-center gap-2 rounded-xl px-1 py-2.5",
+                  "flex items-center justify-center gap-1.5 rounded-xl px-1 py-2",
                   "data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-none"
                 )}
               >

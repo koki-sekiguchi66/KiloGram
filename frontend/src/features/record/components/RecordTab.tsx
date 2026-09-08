@@ -53,16 +53,16 @@ export function RecordTab({
   const [mode, setMode] = useState<RecordMode>("meal");
 
   return (
-    <div className="flex flex-col gap-7">
-      <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <DateSelector selectedDate={selectedDate} onDateChange={onDateChange} />
         <RecordModeSwitch mode={mode} onChange={setMode} />
       </div>
 
       {/* 食事記録: 広い画面では左右2列に畳んで1画面に収める（ADR #34, #35） */}
       <div className={cn(mode !== "meal" && "hidden")}>
-        <div className="grid gap-7 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-0">
-          <div className="flex min-w-0 flex-col gap-6 md:pr-8">
+        <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] md:gap-0">
+          <div className="flex min-w-0 flex-col gap-5 md:pr-8">
             <PFCSummary
               calories={dailySummary?.calories ?? null}
               protein={dailySummary?.protein ?? null}

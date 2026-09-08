@@ -1,17 +1,18 @@
 /**
- * PFCSummary — PFC 栄養サマリーダッシュボード
+ * PFCSummary — PFC 栄養サマリー
  *
  * 設計判断:
  *   - goals は optional。未指定ならリングを描かず、現在値のみを表示する
- *   - カロリーだけリングで大きく見せ、PFC は等幅3カラムに従える（ADR #33）
+ *   - リングの中に文字を収める構成は縮小すると破綻するため、リングは純粋な
+ *     ミニ進捗インジケータにし、kcal の数値はリングの外へ横並びで出す（ADR #36）
  *   - 目標がある間は「摂った量」ではなく「あと何 kcal か」を主役にする
  */
 import { cn } from "@/lib/utils";
 import type { NutritionGoals } from "@/types";
 
 /** リングの viewBox 座標系。実寸は CSS 側で決め、SVG は viewBox で追従させる */
-const RING_SIZE = 128;
-const RING_STROKE = 8;
+const RING_SIZE = 40;
+const RING_STROKE = 5;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
@@ -31,51 +32,36 @@ function ratio(value: number | null, goal?: number): number | null {
 
 function CalorieRing({ calories, goal }: { calories: number | null; goal?: number }) {
   const pct = ratio(calories, goal);
-  const remaining = calories != null && goal ? Math.max(0, goal - calories) : null;
 
   return (
-    <div className="relative aspect-square w-28 shrink-0 lg:w-32">
-      <svg
-        viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
-        className="h-full w-full -rotate-90"
-        aria-hidden="true"
-      >
+    <svg
+      viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}
+      className="h-11 w-11 shrink-0 -rotate-90"
+      aria-hidden="true"
+    >
+      <circle
+        cx={RING_SIZE / 2}
+        cy={RING_SIZE / 2}
+        r={RING_RADIUS}
+        fill="none"
+        stroke="var(--border)"
+        strokeWidth={RING_STROKE}
+      />
+      {pct != null && (
         <circle
           cx={RING_SIZE / 2}
           cy={RING_SIZE / 2}
           r={RING_RADIUS}
           fill="none"
-          stroke="var(--border)"
+          stroke="var(--color-calories)"
           strokeWidth={RING_STROKE}
+          strokeLinecap="round"
+          strokeDasharray={RING_CIRCUMFERENCE}
+          strokeDashoffset={RING_CIRCUMFERENCE * (1 - pct)}
+          className="transition-[stroke-dashoffset] duration-500"
         />
-        {pct != null && (
-          <circle
-            cx={RING_SIZE / 2}
-            cy={RING_SIZE / 2}
-            r={RING_RADIUS}
-            fill="none"
-            stroke="var(--color-calories)"
-            strokeWidth={RING_STROKE}
-            strokeLinecap="round"
-            strokeDasharray={RING_CIRCUMFERENCE}
-            strokeDashoffset={RING_CIRCUMFERENCE * (1 - pct)}
-            className="transition-[stroke-dashoffset] duration-500"
-          />
-        )}
-      </svg>
-
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        {remaining != null && (
-          <span className="text-[11px] text-muted-foreground">あと</span>
-        )}
-        <span className="font-display mt-0.5 text-2xl leading-none tabular-nums text-foreground lg:text-3xl">
-          {(remaining ?? calories) != null
-            ? Math.round(remaining ?? calories ?? 0).toLocaleString()
-            : "--"}
-        </span>
-        <span className="mt-1 text-[11px] text-muted-foreground">kcal</span>
-      </div>
-    </div>
+      )}
+    </svg>
   );
 }
 
@@ -97,21 +83,19 @@ function NutrientColumn({
   const pct = ratio(value, goal);
 
   return (
-    <div>
-      <div className={cn("truncate text-[11px]", colorClass)}>{label}</div>
-      <div className="mt-1.5 flex items-baseline gap-1">
-        <span className="text-2xl font-semibold tabular-nums text-foreground">
+    <div className="min-w-0">
+      <div className="flex items-baseline gap-1">
+        <span className={cn("text-[10px]", colorClass)}>{label}</span>
+        <span className="text-sm font-semibold tabular-nums text-foreground">
           {value != null ? Math.round(value) : "--"}
         </span>
         {goal != null && (
-          <span className="text-xs tabular-nums text-muted-foreground">
-            / {goal}g
-          </span>
+          <span className="text-[10px] tabular-nums text-muted-foreground">/{goal}g</span>
         )}
       </div>
       {pct != null && (
         <div
-          className="mt-2.5 h-1 overflow-hidden rounded-full bg-border/70"
+          className="mt-1 h-[3px] w-14 overflow-hidden rounded-full bg-border/70"
           aria-hidden="true"
         >
           <div
@@ -131,31 +115,47 @@ export function PFCSummary({
   carbs,
   goals,
 }: PFCSummaryProps) {
+  const remaining =
+    calories != null && goals?.calories ? Math.max(0, goals.calories - calories) : null;
+
   return (
     <div
-      className="flex items-center gap-5"
+      className="flex flex-wrap items-center gap-x-6 gap-y-2"
       role="region"
       aria-label="栄養サマリー"
     >
-      <CalorieRing calories={calories} goal={goals?.calories} />
+      <div className="flex items-center gap-2.5">
+        <CalorieRing calories={calories} goal={goals?.calories} />
+        <p className="flex items-baseline gap-1 whitespace-nowrap">
+          {remaining != null && (
+            <span className="text-[10px] text-muted-foreground">あと</span>
+          )}
+          <span className="font-display text-lg leading-none tabular-nums text-foreground">
+            {(remaining ?? calories) != null
+              ? Math.round(remaining ?? calories ?? 0).toLocaleString()
+              : "--"}
+          </span>
+          <span className="text-[10px] text-muted-foreground">kcal</span>
+        </p>
+      </div>
 
-      <div className="grid min-w-0 flex-1 grid-cols-3 gap-4">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-2">
         <NutrientColumn
-          label="たんぱく質"
+          label="P"
           value={protein}
           goal={goals?.protein}
           colorClass="text-protein"
           barColorClass="bg-protein"
         />
         <NutrientColumn
-          label="脂質"
+          label="F"
           value={fat}
           goal={goals?.fat}
           colorClass="text-fat"
           barColorClass="bg-fat"
         />
         <NutrientColumn
-          label="炭水化物"
+          label="C"
           value={carbs}
           goal={goals?.carbs}
           colorClass="text-carbs"

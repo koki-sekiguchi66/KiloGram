@@ -4,11 +4,13 @@ import {
   BookmarkCheck,
   Store,
   Pencil,
-  Calendar,
   ScanLine,
+  Sunrise,
+  Sun,
+  Moon,
+  Coffee,
 } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { CalendarDatePicker } from "@/components/inputs";
 import { cn } from "@/lib/utils";
 import FoodSearchInput from "./FoodSearchInput";
 import ManualInputForm from "./ManualInputForm";
@@ -39,11 +41,11 @@ const INPUT_METHODS: { id: InputMethod; label: string; icon: typeof Search }[] =
   { id: "manual", label: "手動", icon: Pencil },
 ];
 
-const TIMING_OPTIONS: { value: MealTiming; label: string }[] = [
-  { value: "breakfast", label: MEAL_TIMING_LABELS.breakfast },
-  { value: "lunch", label: MEAL_TIMING_LABELS.lunch },
-  { value: "dinner", label: MEAL_TIMING_LABELS.dinner },
-  { value: "snack", label: MEAL_TIMING_LABELS.snack },
+const TIMING_OPTIONS: { value: MealTiming; label: string; icon: typeof Sunrise }[] = [
+  { value: "breakfast", label: MEAL_TIMING_LABELS.breakfast, icon: Sunrise },
+  { value: "lunch", label: MEAL_TIMING_LABELS.lunch, icon: Sun },
+  { value: "dinner", label: MEAL_TIMING_LABELS.dinner, icon: Moon },
+  { value: "snack", label: MEAL_TIMING_LABELS.snack, icon: Coffee },
 ];
 
 /**
@@ -127,36 +129,52 @@ export default function MenuBuilderPanel({ menuBuilder }: MenuBuilderPanelProps)
         ))}
       </div>
 
-      <div className="flex justify-end">
-        {/* 日付 & タイミング */}
-        <div className="flex items-center gap-1 rounded-full border border-border/40 py-1 pr-1 pl-3">
-          <Label htmlFor="record-date" className="sr-only">
-            記録日
-          </Label>
-          <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <Input
+      {/* 日付・タイミング。「日付を選択」「食事タイミングを選択」はここ（記録の入力）に属し、
+          上部の日付ナビゲーション（記録の閲覧）には付けない（ADR #36） */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-[11px] tracking-[0.25em] text-muted-foreground">
+            日付を選択
+          </p>
+          <CalendarDatePicker
             id="record-date"
-            type="date"
             value={recordDate}
-            onChange={(e) => setRecordDate(e.target.value)}
-            className="h-7 w-auto border-0 bg-transparent px-1.5 text-xs shadow-none focus-visible:ring-0"
+            onChange={setRecordDate}
+            className="mt-1.5"
           />
-          <span className="h-4 w-px bg-border" aria-hidden="true" />
-          <Label htmlFor="meal-timing" className="sr-only">
-            タイミング
-          </Label>
-          <select
-            id="meal-timing"
-            value={mealTiming}
-            onChange={(e) => setMealTiming(e.target.value as MealTiming)}
-            className="h-7 rounded-full bg-transparent px-2 text-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        </div>
+
+        <div>
+          <p className="text-[11px] tracking-[0.25em] text-muted-foreground">
+            食事タイミングを選択
+          </p>
+          <div
+            role="tablist"
+            aria-label="記録するタイミング"
+            className="mt-1.5 flex gap-0.5 rounded-full border border-border/40 p-1"
           >
-            {TIMING_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+            {TIMING_OPTIONS.map(({ value, label, icon: Icon }) => {
+              const active = mealTiming === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setMealTiming(value)}
+                  className={cn(
+                    "flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-medium transition-colors",
+                    active
+                      ? "bg-foreground text-background"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
