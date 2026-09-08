@@ -107,17 +107,47 @@ export interface CustomMenuItemDetail extends FullNutrition {
   display_order: number;
 }
 
+/** 対象の食堂（バックエンドの CafeteriaMenu.CAFETERIA_CHOICES と対応） */
+export type CafeteriaCode = "rune" | "hokubu" | "chuo";
+
+export const CAFETERIA_LABELS: Record<CafeteriaCode, string> = {
+  rune: "ルネカフェテリア",
+  hokubu: "北部食堂",
+  chuo: "中央食堂",
+};
+
+/** タブの並び。サイト側の並びではなく、利用者に馴染みのある順に固定する */
+export const CAFETERIA_ORDER: CafeteriaCode[] = ["rune", "hokubu", "chuo"];
+
+/**
+ * 区分チップの並び順。共通区分を先に、食堂ごとの区分（other）を後ろに置く。
+ * 数値が小さいほど前。
+ */
+export const CAFETERIA_CATEGORY_ORDER: Record<string, number> = {
+  main: 0,
+  side: 1,
+  noodle: 2,
+  rice: 3,
+  dessert: 4,
+  other: 5,
+};
+
 /** 食堂メニュー */
 export interface CafeteriaMenu {
   id: number;
   name: string;
+  cafeteria: CafeteriaCode;
+  cafeteria_display: string;
   category: string;
   category_display: string;
+  /** サイト上の区分の見出し。食堂ごとに違う区分はこれでしか区別できない */
+  category_label: string;
   calories: number;
   protein: number;
   fat: number;
   carbohydrates: number;
-  menu_id?: number;
+  /** サイト側のメニューID。食堂をまたぐと重複する */
+  menu_id: string;
 }
 
 /**

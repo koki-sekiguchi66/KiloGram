@@ -5,6 +5,7 @@ import { vi, type Mock } from "vitest";
 import type {
   MealRecord,
   WeightRecord,
+  CafeteriaMenu,
   CustomFood,
   CustomMenuItemDetail,
   DailySummary,
@@ -145,6 +146,24 @@ export const createMockFood = (
   vitamin_b2: 0.01,
   vitamin_c: 0,
   per_serving_grams: 150,
+  ...overrides,
+});
+
+export const createMockCafeteriaMenu = (
+  overrides: Partial<CafeteriaMenu> = {}
+): CafeteriaMenu => ({
+  id: 1,
+  name: "とり天葱生姜だれ",
+  cafeteria: "rune",
+  cafeteria_display: "ルネカフェテリア",
+  category: "main",
+  category_display: "主菜",
+  category_label: "主菜",
+  calories: 358,
+  protein: 17.5,
+  fat: 23.3,
+  carbohydrates: 20.3,
+  menu_id: "611012",
   ...overrides,
 });
 
