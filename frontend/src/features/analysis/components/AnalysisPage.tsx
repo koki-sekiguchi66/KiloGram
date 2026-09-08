@@ -43,11 +43,18 @@ export function AnalysisPage({ allMeals, weights, dailySummary }: AnalysisPagePr
   };
 
   return (
-    <div className="space-y-4 pb-8" data-testid="analysis-page">
+    <div className="space-y-5 pb-8" data-testid="analysis-page">
+      <header>
+        <h2 className="font-display text-3xl">ふりかえる</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          積み重ねてきた記録から、いまの傾向を眺めます。
+        </p>
+      </header>
+
       <WeeklyTrend meals={allMeals} />
 
-      <div className="bg-ledger rounded-xl border border-border bg-card p-4">
-        <h3 className="mb-3 text-sm font-medium text-foreground">今日の目標達成状況</h3>
+      <div className="bg-ledger rounded-2xl border border-border/70 bg-card p-5">
+        <h3 className="font-display mb-4 text-lg text-foreground">今日の目標達成状況</h3>
         <PFCProgressBar current={currentNutrition} />
       </div>
 

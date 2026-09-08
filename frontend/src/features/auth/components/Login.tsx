@@ -82,8 +82,7 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
 
   return (
     <div>
-      <h3 className="mb-4 flex items-center justify-center gap-2 text-center text-xl font-bold text-foreground">
-        <LogIn className="h-5 w-5 text-primary" />
+      <h3 className="font-display mb-6 text-center text-2xl text-foreground">
         ログイン
       </h3>
 
@@ -122,7 +121,13 @@ const Login = ({ onLoginSuccess }: LoginProps) => {
           />
         </div>
 
-        <Button type="submit" disabled={isLoading} className="w-full">
+        <Button
+          type="submit"
+          variant="brand"
+          size="xl"
+          disabled={isLoading}
+          className="w-full"
+        >
           {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

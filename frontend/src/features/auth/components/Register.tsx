@@ -110,8 +110,7 @@ const Register = ({ onRegisterSuccess }: RegisterProps) => {
 
   return (
     <div>
-      <h3 className="mb-4 flex items-center justify-center gap-2 text-center text-xl font-bold text-foreground">
-        <UserPlus className="h-5 w-5 text-primary" />
+      <h3 className="font-display mb-6 text-center text-2xl text-foreground">
         アカウント作成
       </h3>
 
@@ -176,6 +175,8 @@ const Register = ({ onRegisterSuccess }: RegisterProps) => {
 
         <Button
           type="submit"
+          variant="brand"
+          size="xl"
           disabled={isLoading}
           className="w-full"
         >

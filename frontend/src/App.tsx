@@ -55,18 +55,20 @@ function App() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
+    <div className="bg-aura flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="mb-6 text-center">
+        <div className="mb-8 text-center">
           <h1 className="flex items-center justify-center gap-2 text-4xl font-bold tracking-tight">
             <HeartPulse className="h-8 w-8 text-primary" />
             <span className="text-primary">Dish</span>
             <span className="text-foreground">Board</span>
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">栄養管理アプリ</p>
+          <p className="font-display mt-3 text-sm text-muted-foreground">
+            食で、いい一日をつくる。
+          </p>
         </div>
 
-        <Card>
+        <Card className="rounded-2xl">
           <CardContent className="p-6">
             {currentView === "login" ? (
               <>

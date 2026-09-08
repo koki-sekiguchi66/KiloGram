@@ -10,7 +10,7 @@
  *
  * 設計判断:
  *   - 純粋なプレゼンテーション層。データ取得や状態管理は各セクションに委譲
- *   - 上下マージンは AnalysisPage と統一（space-y-4 pb-8）
+ *   - 上下マージンは AnalysisPage と統一（space-y-5 pb-8）
  *   - 将来的にセクションを並び替え可能にする余地を残す
  */
 import { ProfileSection } from "./ProfileSection";
@@ -19,7 +19,14 @@ import { AppearanceSettings } from "./AppearanceSettings";
 
 export function SettingsPage() {
   return (
-    <div className="space-y-4 pb-8" data-testid="settings-page">
+    <div className="space-y-5 pb-8" data-testid="settings-page">
+      <header>
+        <h2 className="font-display text-3xl">設定</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          目標値と見た目を、自分の暮らしに合わせて整えます。
+        </p>
+      </header>
+
       <ProfileSection />
       <GoalSettings />
       <AppearanceSettings />
