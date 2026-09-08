@@ -245,23 +245,32 @@ class CustomFood(models.Model):
 
 class CafeteriaMenu(models.Model):
     """食堂メニュー情報"""
-    
+
+    CAFETERIA_CHOICES = [
+        ('rune', 'ルネカフェテリア'),
+        ('hokubu', '北部食堂'),
+        ('chuo', '中央食堂'),
+    ]
+
+    # 3食堂に共通する区分だけをコード化する。食堂ごとに違う区分は 'other' として
+    # 見出し文言を category_label に持つ（ADR #31）
     MENU_CATEGORY = [
         ('main', '主菜'),
         ('side', '副菜'),
         ('noodle', '麺類'),
         ('rice', '丼・カレー'),
         ('dessert', 'デザート'),
-        ('order', 'オーダー'),
-        ('kebab', 'ケバブ＆ベジタリアン'),
-        ('parfait', 'パフェ'),
-        ('night', '夜限定'),
         ('other', 'その他'),
     ]
-    
-    menu_id = models.CharField(max_length=20, unique=True, verbose_name='メニューID')
+
+    cafeteria = models.CharField(
+        max_length=20, choices=CAFETERIA_CHOICES, default='rune',
+        verbose_name='食堂', db_index=True,
+    )
+    menu_id = models.CharField(max_length=20, verbose_name='メニューID')
     name = models.CharField(max_length=200, verbose_name='メニュー名', db_index=True)
     category = models.CharField(max_length=20, choices=MENU_CATEGORY, verbose_name='カテゴリー', db_index=True)
+    category_label = models.CharField(max_length=50, blank=True, verbose_name='カテゴリー見出し')
     calories = models.FloatField(verbose_name='エネルギー(kcal)')
     protein = models.FloatField(verbose_name='タンパク質(g)')
     fat = models.FloatField(verbose_name='脂質(g)')
@@ -280,15 +289,22 @@ class CafeteriaMenu(models.Model):
     class Meta:
         verbose_name = '食堂メニュー'
         verbose_name_plural = '食堂メニュー'
-        ordering = ['category', 'name']
+        ordering = ['cafeteria', 'category', 'name']
+        # menu_id は食堂をまたぐと重複する（同じ料理を複数の食堂が出す）
+        constraints = [
+            models.UniqueConstraint(
+                fields=['cafeteria', 'menu_id'], name='cafeteria_menu_unique'
+            ),
+        ]
         indexes = [
             models.Index(fields=['category'], name='cafeteria_category_idx'),
             models.Index(fields=['category', 'name'], name='cafeteria_cat_name_idx'),
             models.Index(fields=['updated_at'], name='cafeteria_updated_idx'),
+            models.Index(fields=['cafeteria', 'category'], name='cafeteria_site_cat_idx'),
         ]
-    
+
     def __str__(self):
-        return f"{self.get_category_display()} - {self.name}"
+        return f"{self.get_cafeteria_display()} - {self.get_category_display()} - {self.name}"
 
 class CustomMenu(models.Model):
     """ユーザーが追加した再利用可能なメニューテンプレート"""
