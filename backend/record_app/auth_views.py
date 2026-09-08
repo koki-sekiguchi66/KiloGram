@@ -12,6 +12,9 @@ from urllib.parse import urlencode
 from .google_auth import GoogleLinkRequired, InvalidGoogleToken, resolve_google_user, verify_google_id_token
 
 
+COOP_ALLOW_POPUPS = 'same-origin-allow-popups'
+
+
 class DishBoardLoginView(LoginView):
     """従来フォームにGoogle client IDも渡す認可用ログイン画面。"""
     template_name = 'registration/login.html'
@@ -20,6 +23,12 @@ class DishBoardLoginView(LoginView):
         context = super().get_context_data(**kwargs)
         context['google_client_id'] = settings.GOOGLE_CLIENT_ID
         return context
+
+    def render_to_response(self, context, **response_kwargs):
+        response = super().render_to_response(context, **response_kwargs)
+        # Googleのポップアップから認証結果を受け取るため、この画面だけCOOPを緩める（ADR #32）
+        response.headers['Cross-Origin-Opener-Policy'] = COOP_ALLOW_POPUPS
+        return response
 
 
 class GoogleSessionLoginView(View):

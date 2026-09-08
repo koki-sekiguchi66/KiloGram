@@ -140,3 +140,16 @@ class GoogleAuthenticationTests(APITestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, '/o/authorize/')
         self.assertEqual(int(self.client.session['_auth_user_id']), user.id)
+
+    def test_ログイン画面のCOOPはポップアップを許可する(self):
+        response = self.client.get('/accounts/login/?next=/o/authorize/')
+        self.assertEqual(response.headers['Cross-Origin-Opener-Policy'], 'same-origin-allow-popups')
+
+    def test_ログイン失敗時の再表示でもCOOPを維持する(self):
+        response = self.client.post('/accounts/login/', {'username': 'nobody', 'password': 'wrong'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['Cross-Origin-Opener-Policy'], 'same-origin-allow-popups')
+
+    def test_ログイン画面以外のCOOPは既定のままにする(self):
+        response = self.client.get('/api/health/')
+        self.assertEqual(response.headers['Cross-Origin-Opener-Policy'], 'same-origin')
