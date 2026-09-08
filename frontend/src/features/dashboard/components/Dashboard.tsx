@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
 import { toast } from "sonner";
-import { ClipboardList, ArrowRight } from "lucide-react";
 import { ScaleGaugeIcon } from "@/components/icons";
 
 import { MealForm, EditMealModal, mealApi, useQuickRepeat } from "@/features/meals";
@@ -8,7 +7,7 @@ import { WeightForm } from "@/features/weights";
 import { SaveAsMenuModal } from "@/features/customMenus";
 import { InstallPWA } from "@/components/PWA";
 import { useDashboardData } from "../hooks/useDashboardData";
-import { AppShell, type PageId } from "@/components/layout";
+import { AppShell } from "@/components/layout";
 import { RecordTab } from "@/features/record";
 import type { Meal } from "@/features/record";
 import { AnalysisPage } from "@/features/analysis";
@@ -70,6 +69,11 @@ const Dashboard = ({ handleLogout }: DashboardProps) => {
     if (created) actions.handleMealCreated(created);
   };
 
+  const mealFormSlot = useMemo(
+    () => <MealForm onMealCreated={actions.handleMealCreated} />,
+    [actions.handleMealCreated]
+  );
+
   const weightFormSlot = useMemo(
     () => (
       <div>
@@ -78,7 +82,7 @@ const Dashboard = ({ handleLogout }: DashboardProps) => {
             <ScaleGaugeIcon className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <h2 className="font-display text-lg">体重</h2>
+            <h2 className="font-display text-lg">体重を記録</h2>
             <p className="truncate text-xs text-muted-foreground">
               今日の体重を記録して、からだの変化を見てみましょう。
             </p>
@@ -90,7 +94,7 @@ const Dashboard = ({ handleLogout }: DashboardProps) => {
     [actions.handleWeightCreated]
   );
 
-  const renderRecordContent = (navigate: (page: PageId) => void) => (
+  const recordContent = (
     <RecordTab
       selectedDate={selectedDate}
       onDateChange={actions.handleDateChange}
@@ -103,22 +107,7 @@ const Dashboard = ({ handleLogout }: DashboardProps) => {
       onMealSaveAsMenu={setSavingMenuMeal}
       onMealRepeat={handleMealRepeat}
       isRepeatingMeal={isRepeating}
-      mealFormSlot={
-        <MealForm
-          onMealCreated={actions.handleMealCreated}
-          headerAction={
-            <button
-              type="button"
-              onClick={() => navigate("analysis")}
-              className="flex items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <ClipboardList className="h-4 w-4" />
-              今日の食事を振り返る
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          }
-        />
-      }
+      mealFormSlot={mealFormSlot}
       weightFormSlot={weightFormSlot}
     />
   );
@@ -147,7 +136,7 @@ const Dashboard = ({ handleLogout }: DashboardProps) => {
       <InstallPWA />
       <AppShell
         onLogout={handleLogout}
-        renderRecordContent={renderRecordContent}
+        recordContent={recordContent}
         analysisContent={analysisContent}
         settingsContent={settingsContent}
       />

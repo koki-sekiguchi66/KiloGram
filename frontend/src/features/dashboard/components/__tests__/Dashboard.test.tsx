@@ -64,11 +64,9 @@ vi.mock("@/features/settings", () => ({
   useGoalSettings: () => ({ goals: {} }),
 }));
 vi.mock("@/components/layout", () => ({
-  AppShell: ({
-    renderRecordContent,
-  }: {
-    renderRecordContent: (navigate: (page: string) => void) => ReactNode;
-  }) => <div>{renderRecordContent(vi.fn())}</div>,
+  AppShell: ({ recordContent }: { recordContent: ReactNode }) => (
+    <div>{recordContent}</div>
+  ),
 }));
 vi.mock("sonner", () => ({ toast: { error: toastErrorMock, success: vi.fn() } }));
 

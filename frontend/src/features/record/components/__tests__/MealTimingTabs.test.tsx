@@ -22,6 +22,12 @@ describe('MealTimingTabs', () => {
     vi.restoreAllMocks();
   });
 
+  it('見出しラベルが表示される', () => {
+    render(<MealTimingTabs meals={mockMeals} />);
+
+    expect(screen.getByText('食事タイミングを選択')).toBeInTheDocument();
+  });
+
   it('4つのタブが表示される', () => {
     render(<MealTimingTabs meals={mockMeals} />);
 

@@ -6,9 +6,7 @@ import { AppShell } from "../AppShell";
 describe("AppShell", () => {
   const defaultProps = {
     onLogout: vi.fn(),
-    renderRecordContent: () => (
-      <div data-testid="record-content">記録コンテンツ</div>
-    ),
+    recordContent: <div data-testid="record-content">記録コンテンツ</div>,
   };
 
   it("デフォルトで記録ページを表示する", () => {
@@ -51,23 +49,6 @@ describe("AppShell", () => {
     await user.click(screen.getByText("分析"));
 
     expect(screen.getByText("Coming Soon...")).toBeInTheDocument();
-  });
-
-  it("記録ページにページ遷移関数を渡す", async () => {
-    const user = userEvent.setup();
-    render(
-      <AppShell
-        onLogout={vi.fn()}
-        renderRecordContent={(navigate) => (
-          <button onClick={() => navigate("analysis")}>振り返る</button>
-        )}
-        analysisContent={<div data-testid="analysis-content">分析コンテンツ</div>}
-      />
-    );
-
-    await user.click(screen.getByRole("button", { name: "振り返る" }));
-
-    expect(screen.getByTestId("analysis-content")).toBeInTheDocument();
   });
 
   it("ルート要素に min-h-screen クラスが適用されている", () => {

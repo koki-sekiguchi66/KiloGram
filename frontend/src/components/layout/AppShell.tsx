@@ -7,9 +7,6 @@
  * 設計判断:
  *   React Router は導入せず、useState によるページ切り替えで SPA 感を実現。
  *   理由: DishBoard は記録特化アプリであり、ブラウザ履歴やURL永続化は不要。
- *
- *   記録ページだけは中からページ遷移したい（「今日の食事を振り返る」→ 分析）ため、
- *   ReactNode ではなく navigate を受け取る関数で渡す。Context を足さずに済む（ADR #34）。
  */
 import { useState, type ReactNode } from "react";
 import { Header } from "./Header";
@@ -18,8 +15,8 @@ import { Sidebar, type PageId } from "./Sidebar";
 interface AppShellProps {
   /** ログアウトハンドラー（App.tsx から渡される） */
   onLogout: () => void;
-  /** 記録ページのコンテンツ。ページ遷移関数を受け取る */
-  renderRecordContent: (navigate: (page: PageId) => void) => ReactNode;
+  /** 記録ページのコンテンツ */
+  recordContent: ReactNode;
   /** 分析ページのコンテンツ */
   analysisContent?: ReactNode;
   /** 設定ページのコンテンツ */
@@ -38,7 +35,7 @@ function PagePlaceholder({ title }: { title: string }) {
 
 export function AppShell({
   onLogout,
-  renderRecordContent,
+  recordContent,
   analysisContent,
   settingsContent,
 }: AppShellProps) {
@@ -48,12 +45,14 @@ export function AppShell({
   /** ページIDに対応するコンテンツを返す */
   const renderContent = (): ReactNode => {
     switch (activePage) {
+      case "record":
+        return recordContent;
       case "analysis":
         return analysisContent ?? <PagePlaceholder title="分析" />;
       case "settings":
         return settingsContent ?? <PagePlaceholder title="設定" />;
       default:
-        return renderRecordContent(setActivePage);
+        return recordContent;
     }
   };
 
