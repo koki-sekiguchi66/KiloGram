@@ -45,7 +45,6 @@ describe('PFCSummary', () => {
 
     expect(screen.getByText('あと')).toBeInTheDocument();
     expect(screen.getByText('500')).toBeInTheDocument();
-    expect(screen.getByText('/ 2,000')).toBeInTheDocument();
   });
 
   it('栄養サマリーのリージョンが存在する', () => {

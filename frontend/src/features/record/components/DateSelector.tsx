@@ -13,7 +13,7 @@ function formatDateJa(dateStr: string): { date: string; dayOfWeek: string } {
   const month = date.getMonth() + 1;
   const day = date.getDate();
   const dayOfWeek = ["日", "月", "火", "水", "木", "金", "土"][date.getDay()];
-  return { date: `${month}月${day}日`, dayOfWeek: `（${dayOfWeek}）` };
+  return { date: `${month}月${day}日`, dayOfWeek: `${dayOfWeek}曜日` };
 }
 
 /** 日付を n 日ずらした "YYYY-MM-DD" を返す */
@@ -32,20 +32,20 @@ export function DateSelector({ selectedDate, onDateChange }: DateSelectorProps) 
   const { date, dayOfWeek } = formatDateJa(selectedDate);
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-2">
       <Button
         variant="ghost"
         size="icon"
         onClick={() => onDateChange(shiftDate(selectedDate, -1))}
         aria-label="前日"
-        className="text-muted-foreground hover:text-foreground"
+        className="-ml-2 text-muted-foreground hover:bg-transparent hover:text-foreground"
       >
-        <ChevronLeft className="h-5 w-5" />
+        <ChevronLeft className="h-6 w-6" />
       </Button>
 
-      <p className="font-display text-3xl leading-none text-foreground">
-        {date}
-        <span className="text-base text-muted-foreground">{dayOfWeek}</span>
+      <p className="font-display flex items-baseline gap-3 leading-none text-foreground">
+        <span className="text-4xl">{date}</span>
+        <span className="text-lg text-muted-foreground">{dayOfWeek}</span>
       </p>
 
       <Button
@@ -54,21 +54,18 @@ export function DateSelector({ selectedDate, onDateChange }: DateSelectorProps) 
         onClick={() => onDateChange(shiftDate(selectedDate, 1))}
         disabled={isToday}
         aria-label="翌日"
-        className="text-muted-foreground hover:text-foreground"
+        className="text-muted-foreground hover:bg-transparent hover:text-foreground"
       >
-        <ChevronRight className="h-5 w-5" />
+        <ChevronRight className="h-6 w-6" />
       </Button>
 
-      {isToday ? (
-        <span className="rounded-full bg-primary px-3 py-1 text-[11px] font-semibold tracking-widest text-primary-foreground">
-          TODAY
-        </span>
-      ) : (
+      {/* 今日を見ているときは何も出さない。戻る手段が要るときだけ出す */}
+      {!isToday && (
         <button
           onClick={() => onDateChange(today)}
           className={cn(
-            "rounded-full border border-primary/40 px-3 py-1 text-[11px] font-semibold tracking-widest text-primary",
-            "transition-colors hover:bg-primary/15"
+            "ml-auto text-xs tracking-widest text-primary",
+            "transition-opacity hover:opacity-70"
           )}
         >
           今日へ

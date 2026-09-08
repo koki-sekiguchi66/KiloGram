@@ -12,7 +12,7 @@ describe('DateSelector', () => {
 
     // 日付と曜日は別要素（曜日だけ小さく muted で出す）
     expect(screen.getByText('3月4日')).toBeInTheDocument();
-    expect(screen.getByText('（水）')).toBeInTheDocument();
+    expect(screen.getByText('水曜日')).toBeInTheDocument();
   });
 
   it('前日ボタンで1日前の日付が渡される', async () => {
@@ -35,10 +35,10 @@ describe('DateSelector', () => {
     expect(onDateChange).toHaveBeenCalledWith('2026-03-04');
   });
 
-  it('今日の場合は TODAY バッジが表示される', () => {
+  it('今日の場合は「今日へ」ボタンを出さない', () => {
     render(<DateSelector selectedDate={today} onDateChange={vi.fn()} />);
 
-    expect(screen.getByText('TODAY')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '今日へ' })).not.toBeInTheDocument();
   });
 
   it('今日でない場合は「今日へ」ボタンが表示される', () => {

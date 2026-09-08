@@ -4,14 +4,17 @@
  * Dashboard → RecordTab → PFCSummary の3段 props drilling。
  * Context は導入せず、シンプルさを優先。
  */
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { DateSelector } from "./DateSelector";
-import { CharacterGreeting } from "./CharacterGreeting";
+import { RecordHero } from "./RecordHero";
 import { PFCSummary } from "./PFCSummary";
 import { MealTimingTabs } from "./MealTimingTabs";
+import { useCurrentMealTiming } from "../hooks/useCurrentMealTiming";
 import { useFrequentMeals } from "@/features/meals";
+import { Section } from "@/components/layout";
 import type { Meal, DailySummary } from "../types";
-import type { MealRecord, NutritionGoals } from "@/types";
+import type { MealRecord, MealTiming, NutritionGoals } from "@/types";
+import { MEAL_TIMING_LABELS } from "@/types";
 
 interface RecordTabProps {
   selectedDate: string;
@@ -48,15 +51,19 @@ export function RecordTab({
 }: RecordTabProps) {
   const frequentMeals = useFrequentMeals(allMeals, selectedDate);
 
+  // タブの選択状態は MealTimingTabs が持つ。ここではヒーローの表示のために写しを取る
+  const currentTiming = useCurrentMealTiming();
+  const [shownTiming, setShownTiming] = useState<MealTiming>(currentTiming);
+
   return (
-    <div className="flex flex-col gap-5">
-      {/* 日付セレクター */}
+    <div className="flex flex-col gap-8">
       <DateSelector selectedDate={selectedDate} onDateChange={onDateChange} />
 
-      {/* キャラクター挨拶 */}
-      <CharacterGreeting selectedDate={selectedDate} />
+      <RecordHero
+        timingLabel={MEAL_TIMING_LABELS[shownTiming]}
+        mealCount={meals.filter((m) => m.meal_timing === shownTiming).length}
+      />
 
-      {/* PFCサマリー */}
       <PFCSummary
         calories={dailySummary?.calories ?? null}
         protein={dailySummary?.protein ?? null}
@@ -65,7 +72,6 @@ export function RecordTab({
         goals={goals}
       />
 
-      {/* 食事タイミング別タブ + 食品チップリスト */}
       <MealTimingTabs
         meals={meals}
         onEdit={onMealEdit}
@@ -74,13 +80,12 @@ export function RecordTab({
         frequentMeals={frequentMeals}
         onRepeatMeal={onMealRepeat}
         isRepeatingMeal={isRepeatingMeal}
+        onTimingChange={setShownTiming}
       />
 
-      {/* 既存の食事記録フォーム */}
-      {mealFormSlot}
+      <Section>{mealFormSlot}</Section>
 
-      {/* 既存の体重記録フォーム */}
-      {weightFormSlot}
+      <Section>{weightFormSlot}</Section>
     </div>
   );
 }

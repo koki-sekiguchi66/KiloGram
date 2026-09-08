@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import {
   Search,
   EggFried,
@@ -26,17 +27,24 @@ import {
 
 interface MenuBuilderPanelProps {
   menuBuilder: MenuBuilderReturn;
+  /** 見出しの右に置く操作。ページ遷移リンクなど、meals feature の外の関心事を受け取る */
+  headerAction?: ReactNode;
 }
 
 type InputMethod = "search" | "myItems" | "myMenus" | "cafeteria" | "ocr" | "manual";
 
-const INPUT_METHODS: { id: InputMethod; label: string; icon: typeof Search }[] = [
-  { id: "search", label: "検索", icon: Search },
-  { id: "myItems", label: "Myアイテム", icon: EggFried },
-  { id: "myMenus", label: "Myメニュー", icon: BookmarkCheck },
-  { id: "cafeteria", label: "食堂", icon: Store },
-  { id: "ocr", label: "撮影", icon: ScanLine },
-  { id: "manual", label: "手動", icon: Pencil },
+const INPUT_METHODS: {
+  id: InputMethod;
+  label: string;
+  note: string;
+  icon: typeof Search;
+}[] = [
+  { id: "search", label: "検索", note: "食品を探す", icon: Search },
+  { id: "myItems", label: "Myアイテム", note: "自分の食品", icon: EggFried },
+  { id: "myMenus", label: "Myメニュー", note: "保存した組合せ", icon: BookmarkCheck },
+  { id: "cafeteria", label: "食堂", note: "学食メニュー", icon: Store },
+  { id: "ocr", label: "撮影", note: "成分表を読む", icon: ScanLine },
+  { id: "manual", label: "手動", note: "直接入力", icon: Pencil },
 ];
 
 const TIMING_OPTIONS: { value: MealTiming; label: string }[] = [
@@ -89,7 +97,10 @@ export const toMenuItemPayload = (
   };
 };
 
-export default function MenuBuilderPanel({ menuBuilder }: MenuBuilderPanelProps) {
+export default function MenuBuilderPanel({
+  menuBuilder,
+  headerAction,
+}: MenuBuilderPanelProps) {
   const {
     recordDate,
     setRecordDate,
@@ -106,13 +117,15 @@ export default function MenuBuilderPanel({ menuBuilder }: MenuBuilderPanelProps)
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-2xl">
-          {MEAL_TIMING_LABELS[mealTiming]}を記録
-        </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+        {/* タイミングは右の選択ピルが示すため、見出しには入れない（タブと食い違って見えるため） */}
+        <h2 className="font-display text-3xl">食事を追加</h2>
+        {headerAction}
+      </div>
 
+      <div className="flex justify-end">
         {/* 日付 & タイミング */}
-        <div className="flex items-center gap-1 rounded-full border border-border/70 bg-secondary/40 py-1 pr-1 pl-3">
+        <div className="flex items-center gap-1 rounded-full border border-border/40 py-1 pr-1 pl-3">
           <Label htmlFor="record-date" className="sr-only">
             記録日
           </Label>
@@ -143,26 +156,6 @@ export default function MenuBuilderPanel({ menuBuilder }: MenuBuilderPanelProps)
         </div>
       </div>
 
-      {/* 入力方式タブ */}
-      <div className="grid grid-cols-6 gap-2">
-        {INPUT_METHODS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setActiveInputMethod(id)}
-            className={cn(
-              "flex flex-col items-center gap-1.5 rounded-xl border px-1 py-2.5 text-[10px] font-medium transition-colors",
-              activeInputMethod === id
-                ? "border-primary/60 bg-primary/12 text-primary"
-                : "border-border/70 text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </button>
-        ))}
-      </div>
-
       {/* 入力エリア */}
       <div>
         {activeInputMethod === "search" && (
@@ -183,6 +176,27 @@ export default function MenuBuilderPanel({ menuBuilder }: MenuBuilderPanelProps)
         {activeInputMethod === "manual" && (
           <ManualInputForm onAdd={handleFoodSelected} />
         )}
+      </div>
+
+      {/* 入力方式。箱で囲わず、罫線で仕切るだけにする（ADR #34） */}
+      <div className="grid grid-cols-6 divide-x divide-border/40 border-y border-border/40">
+        {INPUT_METHODS.map(({ id, label, note, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveInputMethod(id)}
+            className={cn(
+              "flex flex-col items-center gap-1 px-1 py-3 transition-colors",
+              activeInputMethod === id
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            <span className="text-[11px] font-medium">{label}</span>
+            <span className="text-[9px] leading-tight opacity-70">{note}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

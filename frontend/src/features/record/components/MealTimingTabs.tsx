@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Sunrise, Sun, Moon, Coffee } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { FoodChipList } from "./FoodChipList";
 import { QuickRepeatChips } from "./QuickRepeatChips";
@@ -15,13 +17,16 @@ interface MealTimingTabsProps {
   frequentMeals?: Record<MealTiming, MealRecord[]>;
   onRepeatMeal?: (meal: MealRecord) => void;
   isRepeatingMeal?: boolean;
+  /** 選択中のタイミングを親へ通知する。ヒーローの表示に使う */
+  onTimingChange?: (timing: MealTiming) => void;
 }
 
+/** time は目安の時刻。useCurrentMealTiming の時間帯の代表値を表示に使う */
 const TIMINGS = [
-  { value: "breakfast", label: "朝食", emoji: "☀️" },
-  { value: "lunch", label: "昼食", emoji: "⛅" },
-  { value: "dinner", label: "夕食", emoji: "🌙" },
-  { value: "snack", label: "間食", emoji: "🍩" },
+  { value: "breakfast", label: "朝食", time: "07:00", icon: Sunrise },
+  { value: "lunch", label: "昼食", time: "12:00", icon: Sun },
+  { value: "dinner", label: "夕食", time: "19:00", icon: Moon },
+  { value: "snack", label: "間食", time: "いつでも", icon: Coffee },
 ] as const;
 
 export function MealTimingTabs({
@@ -32,8 +37,15 @@ export function MealTimingTabs({
   frequentMeals,
   onRepeatMeal,
   isRepeatingMeal,
+  onTimingChange,
 }: MealTimingTabsProps) {
   const currentTiming = useCurrentMealTiming();
+  const [activeTiming, setActiveTiming] = useState<MealTiming>(currentTiming);
+
+  const handleChange = (value: string) => {
+    setActiveTiming(value as MealTiming);
+    onTimingChange?.(value as MealTiming);
+  };
 
   const groupedMeals = TIMINGS.reduce(
     (acc, timing) => {
@@ -44,26 +56,32 @@ export function MealTimingTabs({
   );
 
   return (
-    <Tabs defaultValue={currentTiming} className="w-full">
-      <TabsList className="grid h-auto w-full grid-cols-4 gap-1 rounded-2xl border border-border/70 bg-card p-2">
+    <Tabs value={activeTiming} onValueChange={handleChange} className="w-full">
+      <TabsList className="grid h-auto w-full grid-cols-4 gap-0 divide-x divide-border/40 rounded-2xl border border-border/40 bg-transparent p-1.5">
         {TIMINGS.map((timing) => {
           const count = groupedMeals[timing.value]?.length ?? 0;
+          const Icon = timing.icon;
           return (
             <TabsTrigger
               key={timing.value}
               value={timing.value}
               className={cn(
-                "flex items-center gap-1.5 rounded-xl py-2.5 text-xs",
-                "data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-sm"
+                "flex items-center justify-center gap-2 rounded-xl px-1 py-2.5",
+                "data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-none"
               )}
             >
-              <span>{timing.emoji}</span>
-              <span>{timing.label}</span>
-              {count > 0 && (
-                <span className="ml-0.5 rounded-full bg-primary/20 px-1.5 text-[10px] font-semibold text-primary">
-                  {count}
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="text-left leading-tight">
+                <span className="block text-xs">
+                  {timing.label}
+                  {count > 0 && (
+                    <span className="ml-1 text-[10px] font-semibold text-primary">
+                      {count}
+                    </span>
+                  )}
                 </span>
-              )}
+                <span className="block text-[10px] opacity-60">{timing.time}</span>
+              </span>
             </TabsTrigger>
           );
         })}

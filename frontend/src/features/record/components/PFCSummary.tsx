@@ -10,8 +10,8 @@ import { cn } from "@/lib/utils";
 import type { NutritionGoals } from "@/types";
 
 /** リングの寸法。viewBox と半径を揃えるため定数で持つ */
-const RING_SIZE = 132;
-const RING_STROKE = 9;
+const RING_SIZE = 148;
+const RING_STROKE = 8;
 const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
@@ -68,17 +68,12 @@ function CalorieRing({ calories, goal }: { calories: number | null; goal?: numbe
         {remaining != null && (
           <span className="text-[11px] text-muted-foreground">あと</span>
         )}
-        <span className="font-display text-3xl leading-none tabular-nums text-foreground">
+        <span className="font-display mt-0.5 text-3xl leading-none tabular-nums text-foreground">
           {(remaining ?? calories) != null
             ? Math.round(remaining ?? calories ?? 0).toLocaleString()
             : "--"}
         </span>
-        <span className="text-[11px] text-muted-foreground">kcal</span>
-        {goal != null && (
-          <span className="mt-0.5 text-[10px] tabular-nums text-muted-foreground/70">
-            / {goal.toLocaleString()}
-          </span>
-        )}
+        <span className="mt-1 text-[11px] text-muted-foreground">kcal</span>
       </div>
     </div>
   );
@@ -102,21 +97,21 @@ function NutrientColumn({
   const pct = ratio(value, goal);
 
   return (
-    <div className="px-3 first:pl-0 last:pr-0">
-      <div className={cn("text-[11px]", colorClass)}>{label}</div>
-      <div className="mt-1 flex items-baseline gap-0.5">
+    <div>
+      <div className={cn("text-xs", colorClass)}>{label}</div>
+      <div className="mt-1.5 flex items-baseline gap-1">
         <span className="text-2xl font-semibold tabular-nums text-foreground">
           {value != null ? Math.round(value) : "--"}
         </span>
         {goal != null && (
-          <span className="text-[10px] tabular-nums text-muted-foreground">
-            /{goal}g
+          <span className="text-xs tabular-nums text-muted-foreground">
+            / {goal}g
           </span>
         )}
       </div>
       {pct != null && (
         <div
-          className="mt-2 h-1 overflow-hidden rounded-full bg-muted"
+          className="mt-2.5 h-1 overflow-hidden rounded-full bg-border/70"
           aria-hidden="true"
         >
           <div
@@ -138,13 +133,13 @@ export function PFCSummary({
 }: PFCSummaryProps) {
   return (
     <div
-      className="flex items-center gap-5 rounded-2xl border border-border/70 bg-card p-5"
+      className="flex items-center gap-7"
       role="region"
       aria-label="栄養サマリー"
     >
       <CalorieRing calories={calories} goal={goals?.calories} />
 
-      <div className="grid min-w-0 flex-1 grid-cols-3 divide-x divide-border/60">
+      <div className="grid min-w-0 flex-1 grid-cols-3 gap-4">
         <NutrientColumn
           label="たんぱく質"
           value={protein}
