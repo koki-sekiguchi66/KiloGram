@@ -109,3 +109,26 @@ class TestCafeteriaSuggestionAPI:
         response = authenticated_client.get('/api/cafeteria/suggestions/?date=not-a-date')
 
         assert response.status_code == 400
+
+
+@pytest.mark.django_db
+class TestMCPツールの目標値:
+    """T2 が目標と残りを返すこと（ADR #28 で「MCPからも参照できる」と書いた責任）。"""
+
+    def test_日次サマリーに目標と残りが含まれる(self, user):
+        from mcp_server.tools import _get_daily_nutrition_sync
+
+        NutritionGoal.objects.create(user=user, calories=1800, protein=90, fat=50, carbs=247)
+
+        result = _get_daily_nutrition_sync(user, date.today())
+
+        assert result['goal']['calories'] == 1800
+        # 何も食べていないので残り＝目標
+        assert result['remaining']['calories'] == 1800
+
+    def test_目標未設定でも既定値を返す(self, user):
+        from mcp_server.tools import _get_daily_nutrition_sync
+
+        result = _get_daily_nutrition_sync(user, date.today())
+
+        assert result['goal']['calories'] == 2000

@@ -1,4 +1,4 @@
-"""MCP ツールの本体（T1〜T8）。
+"""MCP ツールの本体（T1〜T9）。
 
 ここは**入出力変換に徹する層**である。ドメイン処理は
 record_app/business_logic/ と record_app/serializers.py にある。
@@ -85,10 +85,25 @@ def _get_daily_nutrition_sync(user, target_date):
     from django.db.models import Count
 
     from record_app.business_logic.nutrition_calculator import NutritionCalculatorService
-    from record_app.models import MealRecord
+    from record_app.models import MealRecord, NutritionGoal
 
     calculator = NutritionCalculatorService()
     total = calculator.get_daily_nutrition_summary(user, target_date)
+
+    # 未設定でもモデルの既定値を返す。既定値の定義はモデルに一本化している（ADR #28）
+    goal_row = NutritionGoal.objects.filter(user=user).first() or NutritionGoal()
+    goal = {
+        'calories': goal_row.calories,
+        'protein': goal_row.protein,
+        'fat': goal_row.fat,
+        'carbs': goal_row.carbs,
+    }
+    remaining = {
+        'calories': round(goal['calories'] - total['calories'], 1),
+        'protein': round(goal['protein'] - total['protein'], 1),
+        'fat': round(goal['fat'] - total['fat'], 1),
+        'carbs': round(goal['carbs'] - total['carbohydrates'], 1),
+    }
 
     meals = (
         MealRecord.objects.filter(user=user, record_date=target_date)
@@ -99,6 +114,8 @@ def _get_daily_nutrition_sync(user, target_date):
     return {
         'date': target_date.isoformat(),
         'total': total,
+        'goal': goal,
+        'remaining': remaining,
         'meals': [formatters.format_meal_summary(meal, meal.items_count) for meal in meals],
     }
 
