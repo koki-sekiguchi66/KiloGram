@@ -10,7 +10,9 @@ describe('DateSelector', () => {
   it('選択日付が日本語形式で表示される', () => {
     render(<DateSelector selectedDate="2026-03-04" onDateChange={vi.fn()} />);
 
-    expect(screen.getByText('3月4日（水）')).toBeInTheDocument();
+    // 日付と曜日は別要素（曜日だけ小さく muted で出す）
+    expect(screen.getByText('3月4日')).toBeInTheDocument();
+    expect(screen.getByText('（水）')).toBeInTheDocument();
   });
 
   it('前日ボタンで1日前の日付が渡される', async () => {
@@ -39,19 +41,19 @@ describe('DateSelector', () => {
     expect(screen.getByText('TODAY')).toBeInTheDocument();
   });
 
-  it('今日でない場合は「今日」ボタンが表示される', () => {
+  it('今日でない場合は「今日へ」ボタンが表示される', () => {
     render(<DateSelector selectedDate="2026-01-01" onDateChange={vi.fn()} />);
 
-    expect(screen.getByText('今日')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '今日へ' })).toBeInTheDocument();
   });
 
-  it('「今日」ボタンクリックで今日の日付が渡される', async () => {
+  it('「今日へ」ボタンクリックで今日の日付が渡される', async () => {
     const onDateChange = vi.fn();
     const user = userEvent.setup();
 
     render(<DateSelector selectedDate="2026-01-01" onDateChange={onDateChange} />);
 
-    await user.click(screen.getByText('今日'));
+    await user.click(screen.getByRole('button', { name: '今日へ' }));
     expect(onDateChange).toHaveBeenCalledWith(today);
   });
 

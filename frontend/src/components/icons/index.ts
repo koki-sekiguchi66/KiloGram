@@ -1,1 +1,1 @@
-export { RiceBallIcon, ScaleGaugeIcon } from "./DomainIcons";
+export { RiceBallIcon, BowlIcon, ScaleGaugeIcon } from "./DomainIcons";

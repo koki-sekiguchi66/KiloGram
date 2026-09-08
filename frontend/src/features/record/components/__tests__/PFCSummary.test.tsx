@@ -8,7 +8,7 @@ describe('PFCSummary', () => {
       <PFCSummary calories={1500} protein={60.5} fat={45.3} carbs={200.7} />
     );
 
-    expect(screen.getByText('1500')).toBeInTheDocument();
+    expect(screen.getByText('1,500')).toBeInTheDocument();  // カロリーは3桁区切り
     expect(screen.getByText('61')).toBeInTheDocument();  // Math.round(60.5)
     expect(screen.getByText('45')).toBeInTheDocument();   // Math.round(45.3)
     expect(screen.getByText('201')).toBeInTheDocument();  // Math.round(200.7)
@@ -30,6 +30,22 @@ describe('PFCSummary', () => {
 
     const zeros = screen.getAllByText('0');
     expect(zeros).toHaveLength(4);
+  });
+
+  it('カロリー目標があるとき残りの kcal を表示する', () => {
+    render(
+      <PFCSummary
+        calories={1500}
+        protein={60}
+        fat={45}
+        carbs={200}
+        goals={{ calories: 2000 }}
+      />
+    );
+
+    expect(screen.getByText('あと')).toBeInTheDocument();
+    expect(screen.getByText('500')).toBeInTheDocument();
+    expect(screen.getByText('/ 2,000')).toBeInTheDocument();
   });
 
   it('栄養サマリーのリージョンが存在する', () => {

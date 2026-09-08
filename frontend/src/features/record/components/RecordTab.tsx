@@ -49,7 +49,7 @@ export function RecordTab({
   const frequentMeals = useFrequentMeals(allMeals, selectedDate);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {/* 日付セレクター */}
       <DateSelector selectedDate={selectedDate} onDateChange={onDateChange} />
 
@@ -77,10 +77,10 @@ export function RecordTab({
       />
 
       {/* 既存の食事記録フォーム */}
-      <div className="mt-2">{mealFormSlot}</div>
+      {mealFormSlot}
 
       {/* 既存の体重記録フォーム */}
-      <div className="mt-2">{weightFormSlot}</div>
+      {weightFormSlot}
     </div>
   );
 }

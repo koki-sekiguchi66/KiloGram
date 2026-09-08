@@ -26,6 +26,25 @@ export function RiceBallIcon({ className }: IconProps) {
   );
 }
 
+/** まだ何も選んでいない状態: 空のお椀 */
+export function BowlIcon({ className }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M3.5 10.5h17a8.5 8.5 0 0 1-8.5 8 8.5 8.5 0 0 1-8.5-8Z" />
+      <path d="M6.5 19.5h11" />
+    </svg>
+  );
+}
+
 /** 体重記録: MeasureFieldの目盛り帯（ADR #18）と同じ意匠のゲージ */
 export function ScaleGaugeIcon({ className }: IconProps) {
   return (

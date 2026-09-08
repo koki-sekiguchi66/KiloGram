@@ -23,7 +23,7 @@ export function FoodChip({ meal, onEdit, onDelete, onSaveAsMenu }: FoodChipProps
     <div
       className={cn(
         "flex items-stretch overflow-hidden",
-        "rounded-md border border-border bg-card",
+        "rounded-xl border border-border/70 bg-card",
         "transition-colors hover:bg-secondary/40"
       )}
     >
