@@ -93,3 +93,8 @@ docker compose rm -v -f frontend && docker compose up -d --build frontend   # �
 
 開発時は Vite の `server.proxy` が `/api` を backend へ転送し、**本番と同じ同一オリジン**で動く。
 CORS の挙動差で本番だけ壊れる事態を避けるための構成。
+
+**タブ切替でフォームの入力途中を消してはいけない画面は、Radix `Tabs.Content` で
+出し分けない。** 非アクティブなタブの中身はアンマウントされ、ローカル state
+（`useState` で持つ入力途中のデータ）が消える。両方を常にマウントしたまま
+`className={cn(!active && "hidden")}` で表示だけ切り替える → ADR #35
