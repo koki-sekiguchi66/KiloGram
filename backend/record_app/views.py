@@ -12,6 +12,8 @@ from rest_framework import status, viewsets, generics, permissions
 from rest_framework.decorators import api_view, action, permission_classes, parser_classes
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.permissions import AllowAny
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -290,6 +292,17 @@ class UserRegistrationView(generics.CreateAPIView):
     """ユーザー登録。"""
     serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'register'
+
+
+class ThrottledObtainAuthToken(ObtainAuthToken):
+    """DRF 標準のトークン発行にレート制限を足しただけのビュー。
+
+    ObtainAuthToken は throttle_classes を空に固定しているため、
+    既定のスロットルが継承されない。ここで明示的に指定する。
+    """
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'login'
 
 
 class UserProfileView(generics.RetrieveAPIView):
@@ -335,6 +348,7 @@ class LogoutView(APIView):
 class GoogleLoginView(APIView):
     """連携済みGoogleアカウントでログインし、未登録なら新規ユーザーを作る。"""
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'google'
 
     def post(self, request):
         try:
@@ -358,6 +372,7 @@ class GoogleLoginView(APIView):
 class GoogleLinkView(APIView):
     """ログイン中の既存ユーザーへGoogleアカウントを明示的に連携する。"""
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = 'google'
 
     def post(self, request):
         try:

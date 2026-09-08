@@ -99,7 +99,14 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
-    ]
+    ],
+    # 認証系のみ総当たりを抑える。通常の API には掛けない（ADR #29）
+    'DEFAULT_THROTTLE_CLASSES': ['rest_framework.throttling.ScopedRateThrottle'],
+    'DEFAULT_THROTTLE_RATES': {
+        'login': '10/min',
+        'register': '10/hour',
+        'google': '10/min',
+    },
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

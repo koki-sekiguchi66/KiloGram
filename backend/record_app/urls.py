@@ -1,6 +1,5 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework.authtoken.views import obtain_auth_token
 from .views import (
     MealTimingChoicesView, MealRecordViewSet, WeightRecordViewSet,
     CustomFoodViewSet, UserRegistrationView, UserProfileView, LogoutView,
@@ -8,7 +7,7 @@ from .views import (
     search_foods, food_suggestions, calculate_nutrition,
     daily_nutrition_summary, list_cafeteria_menus, health_check,
     process_nutrition_label, GoogleLoginView, GoogleLinkView,
-    NutritionGoalView,
+    NutritionGoalView, ThrottledObtainAuthToken,
 )
 
 router = DefaultRouter()
@@ -22,7 +21,7 @@ urlpatterns = [
     path('meal-timings/', MealTimingChoicesView.as_view(), name='meal-timing-choices'),
     path('', include(router.urls)),
     path('register/', UserRegistrationView.as_view(), name='register'),
-    path('login/', obtain_auth_token, name='login'),
+    path('login/', ThrottledObtainAuthToken.as_view(), name='login'),
     path('auth/google/', GoogleLoginView.as_view(), name='google-login'),
     path('auth/google/link/', GoogleLinkView.as_view(), name='google-link'),
     path('logout/', LogoutView.as_view(), name='logout'),
